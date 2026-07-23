@@ -139,3 +139,24 @@ test("config hook creates provider block if missing", async () => {
   expect(cc).toBeDefined()
   expect(cc.npm).toBe("commandcode-go-opencode-provider")
 })
+
+test("config hook attaches reasoning effort variants when available", async () => {
+  const plugin = await pluginFn()
+  const config: Record<string, unknown> = {
+    provider: { commandcode: {} },
+  }
+  await plugin.config(config)
+
+  const cc = (config.provider as Record<string, Record<string, unknown>>).commandcode
+  const models = cc.models as Record<string, Record<string, unknown>>
+  const withVariants = Object.values(models).filter(
+    (m) => m.variants && typeof m.variants === "object",
+  )
+  // Bundled models.json or local command-code should expose at least one effort list
+  expect(withVariants.length).toBeGreaterThan(0)
+  const sample = withVariants[0]
+  const variants = sample.variants as Record<string, { reasoningEffort?: string }>
+  const keys = Object.keys(variants)
+  expect(keys.length).toBeGreaterThan(0)
+  expect(variants[keys[0]].reasoningEffort).toBe(keys[0])
+})
