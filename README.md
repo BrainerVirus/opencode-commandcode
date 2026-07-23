@@ -24,6 +24,12 @@ opencode plugin @fanfan4204/commandcode-go-opencode-provider
 
 This installs the provider and registers all available models automatically.
 
+> **Tip:** For the latest model catalog (including reasoning effort variants), install the `command-code` CLI globally:
+> ```bash
+> npm install -g command-code
+> ```
+> Without it, the plugin falls back to the bundled `models.json` which may be outdated.
+
 ### 2. Connect
 
 Run `/connect` in opencode, search for **Command Code**, and enter your API key:
