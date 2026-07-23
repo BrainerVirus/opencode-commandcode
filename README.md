@@ -2,6 +2,9 @@
 
 [Command Code](https://commandcode.ai) API provider for [opencode](https://opencode.ai). Use Claude, GPT, Gemini, DeepSeek, Qwen, Kimi, GLM, MiniMax, Step, and other models through a single API key.
 
+
+
+
 ## Quick Start
 
 ### 1. Install
@@ -104,7 +107,7 @@ Full model list is maintained in [`models.json`](./models.json) as a fallback. U
 ## Development
 
 ```bash
-git clone https://github.com/brent-weatherall/commandcode-go-opencode-provider.git
+git clone https://github.com/FanFan4204/opencode-commandcode-provider.git
 cd commandcode-go-opencode-provider
 bun install
 ```

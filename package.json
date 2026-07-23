@@ -4,7 +4,7 @@
   "author": "Brent Weatherall",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/brent-weatherall/opencode-commandcode-provider.git"
+    "url": "git+https://github.com/FanFan4204/opencode-commandcode-provider.git"
   },
   "main": "index.ts",
   "devDependencies": {
