@@ -23,9 +23,18 @@
   "bugs": {
     "url": "https://github.com/brent-weatherall/opencode-commandcode-provider/issues"
   },
-  "description": "Command Code API provider for opencode — use Claude, GPT, Gemini, DeepSeek, Qwen, Kimi, GLM, MiniMax, and Step models via Command Code",
-  "engines": { "bun": ">=1.0.0" },
-  "files": ["index.ts", "plugin.ts", "models.json", "_version.txt", "src/"],
+  "description": "Command Code API provider for opencode \u2014 use Claude, GPT, Gemini, DeepSeek, Qwen, Kimi, GLM, MiniMax, and Step models via Command Code",
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "files": [
+    "index.ts",
+    "plugin.ts",
+    "models.json",
+    "_version.txt",
+    "README.md",
+    "src/"
+  ],
   "homepage": "https://github.com/brent-weatherall/opencode-commandcode-provider#readme",
   "keywords": [
     "opencode",
