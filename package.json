@@ -1,5 +1,5 @@
 {
-  "name": "commandcode-go-opencode-provider",
+  "name": "@fanfan4204/commandcode-go-opencode-provider",
   "version": "0.4.0",
   "author": "Brent Weatherall",
   "repository": {
@@ -21,7 +21,7 @@
     }
   },
   "bugs": {
-    "url": "https://github.com/brent-weatherall/opencode-commandcode-provider/issues"
+    "url": "https://github.com/FanFan4204/opencode-commandcode-provider/issues"
   },
   "description": "Command Code API provider for opencode \u2014 use Claude, GPT, Gemini, DeepSeek, Qwen, Kimi, GLM, MiniMax, and Step models via Command Code",
   "engines": {
@@ -35,7 +35,7 @@
     "README.md",
     "src/"
   ],
-  "homepage": "https://github.com/brent-weatherall/opencode-commandcode-provider#readme",
+  "homepage": "https://github.com/FanFan4204/opencode-commandcode-provider#readme",
   "keywords": [
     "opencode",
     "opencode-provider",

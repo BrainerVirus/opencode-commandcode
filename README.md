@@ -19,7 +19,7 @@
 ### 1. Install
 
 ```bash
-opencode plugin commandcode-go-opencode-provider
+opencode plugin @fanfan4204/commandcode-go-opencode-provider
 ```
 
 This installs the provider and registers all available models automatically.
@@ -46,10 +46,10 @@ If you prefer to configure manually, add this to your `opencode.json`:
 
 ```json
 {
-  "plugin": ["commandcode-go-opencode-provider/server"],
+  "plugin": ["@fanfan4204/commandcode-go-opencode-provider/server"],
   "provider": {
     "commandcode": {
-      "npm": "commandcode-go-opencode-provider",
+      "npm": "@fanfan4204/commandcode-go-opencode-provider",
       "name": "Command Code",
       "env": ["COMMANDCODE_API_KEY"]
     }
@@ -87,7 +87,7 @@ The full model list is maintained in [`models.json`](./models.json) as a fallbac
 
 ```bash
 git clone https://github.com/FanFan4204/opencode-commandcode-provider.git
-cd commandcode-go-opencode-provider
+cd opencode-commandcode-provider
 bun install
 ```
 
@@ -95,7 +95,7 @@ For local testing, create `opencode.local.json` (gitignored) with `file://` path
 
 ```json
 {
-  "plugin": ["file:///path/to/commandcode-go-opencode-provider/server"],
+  "plugin": ["file:///path/to/@fanfan4204/commandcode-go-opencode-provider/server"],
   "provider": {
     "commandcode": {
       "npm": "file:///path/to/commandcode-go-opencode-provider",
