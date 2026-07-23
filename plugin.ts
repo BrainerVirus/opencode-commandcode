@@ -122,7 +122,10 @@ function mergeModels(local: ModelEntry[], api: ApiModel[]): ModelEntry[] {
     })
   }
 
-  return merged
+  return merged.sort((a, b) => {
+    if (a.tier !== b.tier) return a.tier === "premium" ? -1 : 1
+    return a.name.localeCompare(b.name)
+  })
 }
 
 function toConfigKey(id: string): string {
