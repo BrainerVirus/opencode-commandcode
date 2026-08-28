@@ -4,6 +4,7 @@ import { homedir, tmpdir } from "os"
 import { execSync } from "child_process"
 import {
   NPM_PACKAGE,
+  FALLBACK_COSTS,
   extractCostData,
   buildCostMap,
   generateOpencodeModels,
@@ -12,6 +13,12 @@ import {
   type ModelEntry,
 } from "../src/catalog.js"
 import { applyDocCosts, fetchOfficialModelsMarkdown, parseModelsTable } from "../src/costs-docs.js"
+import {
+  buildManifest,
+  commandCodeTarballUrl,
+  countCostSources,
+  writeManifest,
+} from "../src/manifest.js"
 
 function cliCostIds(source: string): Set<string> {
   try {
@@ -24,6 +31,8 @@ function cliCostIds(source: string): Set<string> {
 const PROJECT_ROOT = join(import.meta.dir, "..")
 const MODELS_JSON = join(PROJECT_ROOT, "models.json")
 const VERSION_PATH = join(PROJECT_ROOT, "_version.txt")
+const MANIFEST_PATH = join(PROJECT_ROOT, "manifest.json")
+const PACKAGE_JSON = join(PROJECT_ROOT, "package.json")
 const GLOBAL_CONFIG = join(homedir(), ".config", "opencode", "opencode.jsonc")
 const TMP_DIR = join(tmpdir(), "cc-model-sync")
 
@@ -156,9 +165,10 @@ async function main() {
   }
 
   const cliIds = bundleSource ? cliCostIds(bundleSource) : new Set<string>()
+  const docIds = new Set<string>()
   const docsMd = await fetchOfficialModelsMarkdown()
   if (docsMd) {
-    const filled = applyDocCosts(entries, parseModelsTable(docsMd), cliIds)
+    const filled = applyDocCosts(entries, parseModelsTable(docsMd), cliIds, docIds)
     console.log(`  Applied official-docs costs to ${filled} models (${cliIds.size} kept CLI costs)`)
   } else {
     console.log("  Official docs returned no parseable cost table; keeping CLI/fallback costs")
@@ -167,6 +177,28 @@ async function main() {
   console.log(`\nWriting ${MODELS_JSON} with ${entries.length} models from ${sourceLabel}...`)
   writeFileSync(MODELS_JSON, JSON.stringify(entries, null, 2) + "\n", "utf-8")
   writeFileSync(VERSION_PATH, `${version}\n`, "utf-8")
+
+  const pluginVersion = (JSON.parse(readFileSync(PACKAGE_JSON, "utf-8")) as { version: string }).version
+  const costSources = countCostSources({
+    modelIds: entries.map((e) => e.id),
+    cliIds,
+    officialDocIds: docIds,
+    thirdPartyIds: new Set(),
+    fallbackIds: new Set(Object.keys(FALLBACK_COSTS)),
+  })
+  writeManifest(
+    MANIFEST_PATH,
+    buildManifest({
+      pluginVersion,
+      commandCodeVersion: version,
+      commandCodeTarball: commandCodeTarballUrl(version),
+      modelCount: entries.length,
+      reasoningModelCount: entries.filter((e) => e.reasoning).length,
+      modelCatalogOk: true,
+      costSources,
+      generatedAt: new Date().toISOString(),
+    }),
+  )
 
   const modelsObj = generateOpencodeModels(entries)
 

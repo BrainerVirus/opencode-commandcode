@@ -140,6 +140,7 @@ export function applyDocCosts(
   models: ModelEntry[],
   rows: DocCostRow[],
   cliIds: Set<string> = new Set(),
+  filledIds?: Set<string>,
 ): number {
   const byName = new Map(rows.map((r) => [r.name.toLowerCase(), r]))
   const byId = new Map(rows.filter((r) => r.id).map((r) => [r.id!.toLowerCase(), r]))
@@ -151,6 +152,7 @@ export function applyDocCosts(
     model.cost = { input: row.input, output: row.output }
     if (row.cache_read !== undefined) model.cost.cache_read = row.cache_read
     if (row.cache_write !== undefined) model.cost.cache_write = row.cache_write
+    filledIds?.add(model.id)
     filled++
   }
   return filled

@@ -99,3 +99,34 @@ export function lastSuccessfulModelCount(manifest: CatalogManifest | null): numb
   if (manifest.status === "broken") return null
   return manifest.modelCount
 }
+
+export function countCostSources(input: {
+  modelIds: string[]
+  cliIds: Set<string>
+  officialDocIds: Set<string>
+  thirdPartyIds: Set<string>
+  fallbackIds: Set<string>
+}): CostSources {
+  const sources: CostSources = {
+    cli: 0,
+    officialDocs: 0,
+    thirdParty: 0,
+    fallback: 0,
+    unmatched: 0,
+  }
+  for (const id of input.modelIds) {
+    if (input.cliIds.has(id)) sources.cli++
+    else if (input.officialDocIds.has(id)) sources.officialDocs++
+    else if (input.thirdPartyIds.has(id)) sources.thirdParty++
+    else if (input.fallbackIds.has(id)) sources.fallback++
+    else sources.unmatched++
+  }
+  return sources
+}
+
+export function bumpPackageVersionField(pkgJson: string): { json: string; version: string } {
+  const pkg = JSON.parse(pkgJson) as { version: string }
+  const version = bumpPatch(pkg.version)
+  const json = pkgJson.replace(/("version"\s*:\s*")([^"]+)(")/, `$1${version}$3`)
+  return { json, version }
+}

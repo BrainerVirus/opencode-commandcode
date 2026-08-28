@@ -5,6 +5,7 @@ import { join } from "path"
 import {
   buildManifest,
   bumpPatch,
+  countCostSources,
   meetsModelCountFloor,
   writeManifest,
   type CostSources,
@@ -110,5 +111,24 @@ describe("writeManifest", () => {
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
+  })
+})
+
+describe("countCostSources", () => {
+  test("classifies first-hit cli then docs then fallback then unmatched", () => {
+    const counted = countCostSources({
+      modelIds: ["a", "b", "c", "d"],
+      cliIds: new Set(["a"]),
+      officialDocIds: new Set(["b"]),
+      thirdPartyIds: new Set(),
+      fallbackIds: new Set(["c"]),
+    })
+    expect(counted).toEqual({
+      cli: 1,
+      officialDocs: 1,
+      thirdParty: 0,
+      fallback: 1,
+      unmatched: 1,
+    })
   })
 })
