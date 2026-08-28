@@ -16,7 +16,7 @@ This package is based on **[FanFan4204/opencode-commandcode-provider](https://gi
 
 - Bundled `models.json` is the default runtime catalog (no local CLI scrape).
 - CLI cost extraction can fail (as on `command-code@1.38.x`) without dropping models.
-- Official docs fill missing costs; leftover models use a conservative fallback (`degraded` in `manifest.json`).
+- Official docs fill missing costs; remaining paid gaps use [models.dev](https://models.dev) as a reference. Command Code free SKUs stay `$0`.
 - Reasoning effort **variants** on models that declare `reasoningEfforts`.
 - Quiet OpenCode startup (diagnostics go to `startup.json`, not stdout).
 
@@ -74,14 +74,14 @@ Maintainers only. OpenCode will scrape a local `command-code` install when `COMM
 git clone https://github.com/BrainerVirus/opencode-commandcode-provider.git
 cd opencode-commandcode-provider
 bun install
-bun test tests/unit/
+bun run check            # oxlint + oxfmt + bun test + tsc (same stack as workit)
 ```
 
 ```bash
 bun run sync -- --remote  # refresh models.json + manifest.json from command-code@latest
 ```
 
-CI (`.github/workflows/catalog-sync.yml`) opens a PR every 6 hours when Command Code ships a new catalog. Merge after **check (test)**, **check (typecheck)**, and **check (pack)** are green. `.github/workflows/release.yml` then runs **semantic-release** (npm publish + GitHub Release + tag). Do not push to `main`.
+CI (`.github/workflows/catalog-sync.yml`) opens a PR every 6 hours when Command Code ships a new catalog. Merge after **check (test)**, **check (typecheck)**, **check (lint)**, **check (format)**, and **check (pack)** are green. `.github/workflows/release.yml` then runs **semantic-release** (npm publish + GitHub Release + tag). Do not push to `main`.
 
 The GitHub Actions secret name is `NPMJS` (same as workit). It is mapped to both `NPM_TOKEN` and `NODE_AUTH_TOKEN`. Use an npm **Automation** token (bypasses 2FA). A login token from `~/.npmrc` fails CI with `EOTP`. Catalog PRs get a real CI run when `RELEASE_SYNC_TOKEN` (or `CATALOG_PUSH_TOKEN`) is a PAT; `GITHUB_TOKEN` can open the PR but GitHub will not start workflows from that event.
 

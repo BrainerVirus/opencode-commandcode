@@ -15,7 +15,7 @@ Watch `command-code` on npm every 6 hours, refresh the bundled catalog, publish 
 - Tag + GitHub Release **after** successful `npm publish` only. Never tag a version that is not on the registry.
 - Catalog auto-commit uses `GITHUB_TOKEN` (or `CATALOG_PUSH_TOKEN` if protection blocks it). Those commits do **not** trigger other workflows, so catalog-sync must publish in the **same job**.
 - Human merges to `main` run a separate release job that publishes only if `package.json` version is unpublished (code fixes).
-- Cost-only CLI failure still ships (`degraded` if fallback/unmatched costs remain). Model extract failure → no publish, `catalog-break` issue.
+- Cost-only CLI failure still ships (`degraded` only if unmatched placeholder costs remain). Model extract failure → no publish, `catalog-break` issue.
 - Runtime catalog stays bundled `models.json`. No GitHub fetch at OpenCode startup.
 - Hybrid OpenCode transport stays `@ai-sdk/openai-compatible` + Provider API; this package is the **plugin**, not the SDK `npm` field.
 

@@ -61,6 +61,7 @@ Human- and CI-readable metadata about the bundled catalog. Shipped with the plug
     "cli": 40,
     "officialDocs": 25,
     "thirdParty": 0,
+    "free": 0,
     "fallback": 0,
     "unmatched": 0
   },
@@ -71,18 +72,18 @@ Human- and CI-readable metadata about the bundled catalog. Shipped with the plug
 Write order: bump `package.json` version first, then write `manifest.json` with that `pluginVersion`, then one commit. Do not store `gitCommit` in the file (unknown until after commit; put SHA on the GitHub Release instead).
 
 `status` rules:
-- `healthy`: model catalog ok **and** every model has costs from `cli`, `officialDocs`, or `thirdParty` (`fallback` = 0 and `unmatched` = 0)
-- `degraded`: model catalog ok, but at least one model used hardcoded fallback or has no cost
+- `healthy`: model catalog ok **and** every model has a sourced price (`cli`, `officialDocs`, `thirdParty` / models.dev, or `free`). `unmatched` = 0
+- `degraded`: model catalog ok, but at least one model still has the unmatched placeholder `{ input: 0.5, output: 2 }`
 - `broken`: model catalog extraction failed
 
-`extraction.costCatalog` is the **best** source that contributed (`cli` | `docs` | `thirdParty` | `fallback` | `missing`).
+`extraction.costCatalog` is the **best** source that contributed (`cli` | `docs` | `thirdParty` | `free` | `fallback` | `missing`).
 
 Status values:
 
 | status | Meaning | CI action |
 |---|---|---|
-| `healthy` | models ok; costs from CLI, official docs, and/or trusted API | release |
-| `degraded` | models ok; some costs are hardcoded fallback or missing | release + note which models fell through |
+| `healthy` | models ok; costs from CLI, official docs, models.dev, and/or free SKUs | release |
+| `degraded` | models ok; some costs have no listed source | release + note which models fell through |
 | `broken` | model catalog extraction failed | no release, open issue |
 
 ### `_version.txt` (existing)
@@ -100,10 +101,11 @@ Waterfall, per model, first hit wins. Later steps only fill models still missing
    - Preferred parse target: [https://commandcode.ai/models](https://commandcode.ai/models) (per-model table: Input/M, Output/M, Cache read, Cache write).
    - Fallback page: [https://commandcode.ai/docs/resources/pricing-limits](https://commandcode.ai/docs/resources/pricing-limits) if `/models` fetch or parse fails.
    - Store the **current billed** per-1M USD rates shown on the page (deal-adjusted when the page shows an effective price). Do not invent deal math.
-3. **Trusted third-party API** — only if a provider is configured (`COST_ENRICHMENT_API_URL` secret/env). Default: **none**. Skip this step until one is added. Do not use OpenRouter (or similar) unless explicitly configured; their list prices are not Command Code’s billed rates.
-4. **Hardcoded fallback** (`FALLBACK_COSTS` + existing default `{ input: 0.5, output: 2 }`) — last resort so the catalog still ships.
+3. **Free SKUs** — catalog id/name matching `\bfree\b` or id ending `-free` → `{ input: 0, output: 0 }`. Runs **before** models.dev so Command Code free SKUs stay $0 even when models.dev lists a paid twin (e.g. Tencent Hy3).
+4. **models.dev** — `GET https://models.dev/api.json` for remaining **paid** gaps. Exact id (case-insensitive), then last path segment as id, then exact display name. Reference prices, not Command Code billed rates. Do not apply to free SKUs.
+5. **Unmatched placeholder** `{ input: 0.5, output: 2 }` — last resort so the catalog still ships. These are the only models that mark the catalog `degraded`.
 
-Match docs/API rows to catalog models with **exact** id (case-insensitive) then **exact** display name (case-insensitive). No fuzzy matching. Unmatched models go to the next step.
+Match docs/API rows to catalog models with **exact** id (case-insensitive) then **exact** display name (case-insensitive). models.dev also tries the last `/` segment of the catalog id as an exact id. No fuzzy matching. Unmatched models go to the next step.
 
 Never fail the sync because costs are incomplete. Model catalog remains the hard requirement.
 
@@ -126,8 +128,8 @@ Steps:
 3. Download tarball (reuse logic from `scripts/sync-models.ts --remote`).
 4. Extract models (required) then run the **cost waterfall**:
    - model catalog fail → status `broken`, stop (no commit, no publish).
-   - CLI costs fail or partial → continue; fill gaps from official docs, then optional trusted API, then hardcoded fallback.
-   - Record `costSources` on the manifest. `degraded` only if any model still used fallback/unmatched.
+   - CLI costs fail or partial → continue; fill gaps from official docs, then free SKUs ($0), then models.dev, then unmatched placeholder.
+   - Record `costSources` on the manifest. `degraded` only if any model is still unmatched.
 5. Sanity floor: `modelCount >= max(20, floor(lastSuccessfulModelCount * 0.5))`. `lastSuccessfulModelCount` is `modelCount` from the last committed manifest with `status` `healthy` or `degraded`. Fail as `broken` if below. If no prior manifest, use `20`.
 6. Write `models.json`, `_version.txt`, bump patch in `package.json`, write `manifest.json`.
 7. Run unit tests (including 1.38 costless fixture).
@@ -171,7 +173,7 @@ When a subsequent sync succeeds after manual fix:
 | Event | Version bump | Publish |
 |---|---|---|
 | New command-code catalog (healthy) | patch | yes |
-| New command-code catalog (degraded: some fallback costs) | patch | yes |
+| New command-code catalog (degraded: unmatched placeholder costs) | patch | yes |
 | Model extraction broken | none | no |
 | Plugin code fix (manual PR) | patch/minor per semver | yes (manual or on merge) |
 
@@ -255,7 +257,6 @@ Commit **extracted snapshots** (model JSON + expected counts/errors), not the pr
 | `NPM_TOKEN` | publish plugin package (`brainervirus`) |
 | `GITHUB_TOKEN` | commit, release, issues |
 | `CATALOG_PUSH_TOKEN` | optional; only if branch protection blocks `GITHUB_TOKEN` |
-| `COST_ENRICHMENT_API_URL` | optional; skip third-party cost step when unset |
 
 If `main` is protected against `GITHUB_TOKEN`, set `CATALOG_PUSH_TOKEN`. One push path only.
 
@@ -263,7 +264,7 @@ If `main` is protected against `GITHUB_TOKEN`, set `CATALOG_PUSH_TOKEN`. One pus
 
 - User can run OpenCode with **no** global/local `command-code` install and get current models from the installed plugin (npm package, or a `file://` checkout that has been synced).
 - Within 6 hours of a new `command-code` npm release, CI either commits a catalog update (and publishes a plugin patch if `NPM_TOKEN` is set) or opens/updates a `catalog-break` issue.
-- Cost-only CLI regressions (like 1.38) still ship a catalog. Costs come from official docs when the CLI map fails; `degraded` only if docs/API also miss models.
+- Cost-only CLI regressions (like 1.38) still ship a catalog. Costs come from official docs, then free SKUs ($0), then models.dev; `degraded` only if models remain unmatched.
 - Successful sync never requires local `bun run sync` from the user.
 - Failed model extraction never publishes a misleading npm release.
 
