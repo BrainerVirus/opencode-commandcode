@@ -82,33 +82,40 @@ describe("applyModelsDevModalities", () => {
     readFileSync(join(import.meta.dir, "../fixtures/models-dev/api.subset.json"), "utf-8"),
   );
 
-  test("copies vision modalities and defaults unmatched plus cost-only rows to text-only", () => {
+  test("keeps CLI modalities on unmatched SKUs and only enriches extras from models.dev", () => {
     const models = [
-      model({ id: "google/gemini-3.5-flash", name: "Gemini 3.5 Flash" }),
-      model({ id: "tencent/hy4-preview", name: "Tencent Hy4 Preview" }),
-      model({ id: "Qwen/Qwen3.6-Plus", name: "Qwen 3.6 Plus" }),
-      model({ id: "unknown/not-on-models-dev", name: "Unknown" }),
       model({
-        id: "inclusionai/ling-3.0-flash-free",
-        name: "Ling 3.0 Flash Free",
-        cost: { input: 0, output: 0 },
+        id: "google/gemini-3.5-flash",
+        name: "Gemini 3.5 Flash",
+        attachment: true,
+        modalities: { input: ["text", "image"], output: ["text"] },
       }),
+      model({
+        id: "unknown/cli-vision-only",
+        name: "CLI Vision Only",
+        attachment: true,
+        modalities: { input: ["text", "image"], output: ["text"] },
+      }),
+      model({
+        id: "tencent/hy4-preview",
+        name: "Tencent Hy4 Preview",
+        attachment: false,
+        modalities: { input: ["text"], output: ["text"] },
+      }),
+      model({ id: "no-cli-no-dev", name: "Gap" }),
     ];
     const n = applyModelsDevModalities(models, rows);
-    expect(n).toBe(2);
-    expect(models[0].attachment).toBe(true);
+    expect(n).toBe(1);
     expect(models[0].modalities).toEqual({
       input: ["text", "image", "video", "audio", "pdf"],
       output: ["text"],
     });
-    expect(models[1].attachment).toBe(false);
-    expect(models[1].modalities).toEqual({ ...TEXT_ONLY_MODALITIES });
+    expect(models[1].attachment).toBe(true);
+    expect(models[1].modalities).toEqual({ input: ["text", "image"], output: ["text"] });
     expect(models[2].attachment).toBe(false);
     expect(models[2].modalities).toEqual({ ...TEXT_ONLY_MODALITIES });
     expect(models[3].attachment).toBe(false);
     expect(models[3].modalities).toEqual({ ...TEXT_ONLY_MODALITIES });
-    expect(models[4].attachment).toBe(false);
-    expect(models[4].modalities).toEqual({ ...TEXT_ONLY_MODALITIES });
   });
 });
 

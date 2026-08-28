@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Catalog models include vision vs text-only metadata (`attachment` / `modalities`) copied from models.dev; unmatched models default to text-only.
+- Catalog models include vision vs text-only from the Command Code CLI `inputModalities` field on every SKU. models.dev only adds extra inputs (video/audio/pdf) on matches.
 
 ## [0.6.1] - 2026-08-28
 

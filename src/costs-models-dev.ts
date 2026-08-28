@@ -110,6 +110,19 @@ export function applyModelsDevModalities(models: ModelEntry[], rows: ModelsDevRo
   let filled = 0;
   for (const model of models) {
     const row = findRow(model, index);
+    const current = model.modalities;
+    if (current && model.attachment !== undefined) {
+      const extra = row?.modalities?.input?.filter((x) => !current.input.includes(x)) ?? [];
+      if (extra.length > 0) {
+        model.modalities = {
+          input: [...current.input, ...extra],
+          output: [...current.output],
+        };
+        if (model.modalities.input.includes("image")) model.attachment = true;
+        filled++;
+      }
+      continue;
+    }
     if (row && (row.modalities || row.attachment !== undefined)) {
       const modalities = row.modalities
         ? { input: [...row.modalities.input], output: [...row.modalities.output] }

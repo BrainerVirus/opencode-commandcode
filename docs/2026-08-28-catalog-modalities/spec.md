@@ -1,4 +1,4 @@
-# Spec: Catalog modalities from models.dev
+# Spec: Catalog modalities from Command Code CLI
 
 Status: approved (2026-08-28)
 **Branch:** `feature/2026-08-28-catalog-modalities`
@@ -7,56 +7,54 @@ Parent: [docs/2026-08-28-ci-catalog/spec.md](../2026-08-28-ci-catalog/spec.md)
 
 ## Goals
 
-- G1: Every bundled catalog model carries OpenCode `attachment` and `modalities` copied from [models.dev](https://models.dev).
-- G2: Unmatched models default to text-only (no vision guessing, no frozen allowlist).
-- G3: Cost waterfall stays independent; modalities apply to all matching models including free SKUs.
+- G1: Every Command Code SKU in the bundled catalog carries OpenCode `attachment` and `modalities` from the CLI catalog `inputModalities` field (same extract as ids/reasoning).
+- G2: models.dev only **enriches** extra input types (`video` / `audio` / `pdf`) on matches. It never overwrites CLI vision/text-only and never invents text-only for a SKU the CLI already classified.
+- G3: Cost waterfall stays independent.
 
 ## Locked (do not reopen)
 
-- Source of truth is models.dev `attachment` + `modalities` (same fetch already used for costs). No human allowlist. No guessing vision.
-- Cost waterfall stays independent. Modalities apply to **all** matching models, including free SKUs and models that already have CLI/docs prices.
-- Unmatched models default to text-only: `attachment: false`, `modalities: { input: ["text"], output: ["text"] }`.
-- Runtime still does not fetch models.dev. Sync writes the fields into `models.json`; `generateOpencodeModels` emits them (and the text-only default if a field is missing).
-- Do not overwrite CLI `limit`, `reasoning`, or `tool_call` from models.dev.
-- Do not inject capability text into the session prompt. Asking the chat model “what can you do?” is out of scope.
+- Command Code CLI catalog is the source of truth for native vision vs text-only. The public GitHub repo is a stub; the field lives on every model object in the npm `command-code` bundle as `inputModalities: ["text"]` or `["text","image"]`.
+- Provider API `GET /provider/v1/models` has `context_length` only — no vision flags. Official docs Capabilities column is icons, not structured data.
+- models.dev may add extra modality strings; it must not flip a CLI text-only model to vision or wipe CLI vision on unmatched ids.
+- Last-resort text-only applies only when a model has **no** CLI `inputModalities` and no models.dev match (e.g. hardcoded extras).
+- Runtime still does not fetch models.dev. Sync writes the fields into `models.json`.
+- Do not overwrite CLI `reasoning` / `reasoningEfforts` from models.dev.
+- Do not inject capability text into the session prompt.
 
 ## Context
 
-`generateOpencodeModels` currently emits `id`, `name`, `reasoning`, `tool_call`, `cost`, `limit`, and optional `reasoningEfforts`/`variants`. OpenCode uses `attachment` and `modalities.input` for vision. Hy4 Preview (`tencent/hy4-preview`) is text-only on models.dev with a 1,048,576 context window already present on `limit`; the model itself does not read that metadata.
+`extractModelCatalog` already evaluates full CLI model objects. `buildModelEntry` previously dropped `inputModalities` and `maxOutputTokens`. Hy4 Preview is `["text"]` in the CLI catalog (not a missing match). Gemini 3.5 Flash is `["text","image"]`.
 
 ## Non-goals
 
-- Session/system-prompt injection of context window or vision flags
-- Filling `limit` from models.dev
-- Local OpenCode overlay `commandcode-modalities.ts` (becomes redundant after this ships; not deleted in this repo)
+- Session/system-prompt injection
+- Local OpenCode overlay `commandcode-modalities.ts` (redundant after this ships)
 - Changing hybrid Provider API transport
+- Parsing the HTML Capabilities column on commandcode.ai docs
 
 ## Architecture
 
 ```mermaid
 flowchart TD
-  sync["bun run sync"] --> fetch[Fetch models.dev api.json]
-  fetch --> costs[applyModelsDevCosts skip priced/free]
-  fetch --> mods[applyModelsDevModalities all models]
-  mods --> unmatched[No match: text-only default]
-  costs --> json[models.json]
-  unmatched --> json
+  sync["bun run sync"] --> cli[Extract CLI catalog including inputModalities]
+  cli --> map["buildModelEntry: attachment + modalities per SKU"]
+  map --> fetch[Fetch models.dev]
+  fetch --> enrich[Union extra inputs on matches only]
+  enrich --> json[models.json]
   json --> emit[generateOpencodeModels]
-  emit --> oc["OpenCode attachment + modalities"]
 ```
-
-Matching reuses the existing models.dev index: exact id, then last path segment, then display name (case-insensitive). Copy `modalities` arrays as-is (Gemini may include `video` / `audio` / `pdf`). `attachment` comes from models.dev when present, otherwise `modalities.input` includes `"image"`.
 
 ## Acceptance criteria
 
-- CA-01: `parseModelsDev` retains `attachment` and `modalities` on rows that already have costs.
-- CA-02: `applyModelsDevModalities` sets Gemini-style vision on a matching catalog id and text-only on Hy4 Preview / unmatched ids.
-- CA-03: Free SKUs and CLI-priced models still receive modalities (not skipped the way costs are).
-- CA-04: `generateOpencodeModels` always emits `attachment` and `modalities`; missing fields become text-only.
-- CA-05: `bun run sync` applies modalities from the same models.dev JSON used for costs; if that fetch fails, every model still gets the text-only default before write.
-- CA-06: README states that vision/text-only comes from models.dev.
+- CA-01: `buildModelEntry` maps CLI `inputModalities` including `"image"` to `attachment: true` and maps `["text"]` to text-only, including Hy4 Preview.
+- CA-02: `loadCatalogFromBundle` preserves those fields from a minified CLI-shaped catalog.
+- CA-03: `applyModelsDevModalities` keeps CLI vision on ids models.dev does not list.
+- CA-04: models.dev may append extra inputs (e.g. Gemini `video`/`audio`/`pdf`) without removing CLI `text`/`image`.
+- CA-05: `generateOpencodeModels` always emits `attachment` and `modalities`.
+- CA-06: README states vision/text-only comes from the CLI catalog.
 
 ## Decisions
 
-- D-01: Conservative default is text-only, not “omit the field and let OpenCode guess”.
+- D-01: CLI `inputModalities` wins over models.dev for native vision vs text-only.
 - D-02: Extra modality strings from models.dev are copied, not filtered to `text`/`image`.
+- D-03: `maxOutputTokens` from the CLI sets `limit.output` when present.
