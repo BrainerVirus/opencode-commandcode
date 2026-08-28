@@ -10,13 +10,15 @@ afterAll(() => {
   if (originalEnv.COMMANDCODE_API_KEY) process.env.COMMANDCODE_API_KEY = originalEnv.COMMANDCODE_API_KEY
 })
 
+const noAuthPaths = { authPaths: [] as string[] }
+
 test("throws when no API key is available", () => {
-  expect(() => createCommandCode()).toThrow("Command Code API key not found")
+  expect(() => createCommandCode(noAuthPaths)).toThrow("Command Code API key not found")
 })
 
 test("throws with descriptive message listing all options", () => {
   try {
-    createCommandCode()
+    createCommandCode(noAuthPaths)
     expect.unreachable("Should have thrown")
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
