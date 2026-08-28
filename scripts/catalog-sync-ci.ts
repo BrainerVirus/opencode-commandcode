@@ -66,6 +66,10 @@ function openOrUpdateCatalogBreak(input: { commandCodeVersion: string; error: st
   });
 }
 
+function queuePrAutoMerge(): void {
+  execSync("gh pr merge --auto --squash --delete-branch", { cwd: ROOT, stdio: "inherit" });
+}
+
 function openCatalogPr(commandCodeVersion: string): void {
   const status = git(`status --porcelain -- ${CATALOG_FILES.join(" ")}`);
   if (!status) {
@@ -88,12 +92,14 @@ function openCatalogPr(commandCodeVersion: string): void {
   const prs = JSON.parse(existing) as Array<{ number: number }>;
   if (prs.length > 0) {
     console.log(`updated catalog PR #${prs[0].number}`);
+    queuePrAutoMerge();
     return;
   }
   execSync(
-    `gh pr create --base main --head ${CATALOG_BRANCH} --title ${JSON.stringify(`fix(catalog): sync command-code@${commandCodeVersion}`)} --body ${JSON.stringify(`Automated catalog refresh from command-code@${commandCodeVersion}. Merge after CI is green; semantic-release publishes the patch.`)}`,
+    `gh pr create --base main --head ${CATALOG_BRANCH} --title ${JSON.stringify(`fix(catalog): sync command-code@${commandCodeVersion}`)} --body ${JSON.stringify(`Automated catalog refresh from command-code@${commandCodeVersion}. Auto-merges when CI is green; semantic-release publishes the patch.`)}`,
     { cwd: ROOT, stdio: "inherit" },
   );
+  queuePrAutoMerge();
 }
 
 async function main(): Promise<void> {

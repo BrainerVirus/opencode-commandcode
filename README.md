@@ -84,7 +84,7 @@ bun run check            # oxlint + oxfmt + bun test + tsc (same stack as workit
 bun run sync -- --remote  # refresh models.json + manifest.json from command-code@latest
 ```
 
-CI (`.github/workflows/catalog-sync.yml`) opens a PR every 6 hours when Command Code ships a new catalog. Merge after **check (test)**, **check (typecheck)**, **check (lint)**, **check (format)**, and **check (pack)** are green. `.github/workflows/release.yml` then runs **semantic-release** (npm publish + GitHub Release + tag). Do not push to `main`.
+CI (`.github/workflows/catalog-sync.yml`) opens a PR every 6 hours when Command Code ships a new catalog. That PR, and the post-release `chore/manifest-sync-v*` PR, auto-merge after **check (test)**, **check (typecheck)**, **check (lint)**, **check (format)**, and **check (pack)** are green. `.github/workflows/release.yml` then runs **semantic-release** (npm publish + GitHub Release + tag). Do not push to `main`.
 
 The GitHub Actions secret name is `NPMJS` (same as workit). It is mapped to both `NPM_TOKEN` and `NODE_AUTH_TOKEN`. Use an npm **Automation** token (bypasses 2FA). A login token from `~/.npmrc` fails CI with `EOTP`. Catalog PRs get a real CI run when `RELEASE_SYNC_TOKEN` (or `CATALOG_PUSH_TOKEN`) is a PAT; `GITHUB_TOKEN` can open the PR but GitHub will not start workflows from that event.
 
