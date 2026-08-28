@@ -4,7 +4,6 @@
 
 > **Forked from** [brent-weatherall/opencode-commandcode-provider](https://github.com/brent-weatherall/opencode-commandcode-provider) — originally created by [Brent Weatherall](https://github.com/brent-weatherall).
 
-
 ### Key improvements over upstream
 
 - **Auto-load catalog from local command-code** — on startup, scrapes the model catalog (including `reasoningEfforts`) from your locally installed `command-code` npm package. Falls back to bundled `models.json` if the package is not found.
