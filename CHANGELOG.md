@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- npm publishes only when plugin or catalog files change since the last tag — CI, tests, and scripts-only merges skip a release.
+
 ## [0.6.1] - 2026-08-28
 
 ### Added

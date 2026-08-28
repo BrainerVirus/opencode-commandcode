@@ -12,6 +12,7 @@ describe("CHANGELOG.md", () => {
   test("records shipped versions under Keep a Changelog headings", () => {
     const log = read("CHANGELOG.md");
     expect(log).toContain("## [Unreleased]");
+    expect(log).toContain("## [0.6.1]");
     expect(log).toContain("## [0.6.0]");
     expect(log).toContain("## [0.5.1]");
     expect(log).toContain("## [0.5.0]");
@@ -38,6 +39,7 @@ describe("package.json publish identity", () => {
       homepage?: string;
       files?: string[];
       scripts?: Record<string, string>;
+      devDependencies?: Record<string, string>;
     }>("package.json");
     expect(pkg.name).toBe("@brainervirus/opencode-commandcode");
     expect(pkg.publishConfig?.access).toBe("public");
@@ -50,6 +52,8 @@ describe("package.json publish identity", () => {
     expect(pkg.scripts?.format).toContain("oxfmt");
     expect(pkg.scripts?.["format:check"]).toContain("oxfmt --check");
     expect(pkg.scripts?.check).toContain("format:check");
+    expect(pkg.devDependencies?.["@semantic-release/exec"]).toBeDefined();
+    expect(pkg.devDependencies?.["@semantic-release/commit-analyzer"]).toBeUndefined();
   });
 });
 
@@ -148,13 +152,16 @@ describe("catalog-sync.yml", () => {
 describe("release.config.cjs", () => {
   test("publishes the root package then GitHub Release", () => {
     const cfg = read("release.config.cjs");
-    expect(cfg).toContain("@semantic-release/commit-analyzer");
+    expect(cfg).toContain("@semantic-release/exec");
+    expect(cfg).toContain("analyzeCommitsCmd");
+    expect(cfg).toContain("scripts/analyze-release-scope.ts");
+    expect(cfg).not.toContain("@semantic-release/commit-analyzer");
     expect(cfg).toContain("./scripts/semantic-release-catalog-notes.cjs");
     expect(cfg).toContain("./scripts/semantic-release-changelog.cjs");
     expect(cfg).toContain("@semantic-release/npm");
     expect(cfg).toContain("@semantic-release/github");
-    expect(cfg.indexOf("semantic-release-catalog-notes.cjs")).toBeLessThan(
-      cfg.indexOf("@semantic-release/release-notes-generator"),
+    expect(cfg.indexOf("@semantic-release/exec")).toBeLessThan(
+      cfg.indexOf("semantic-release-catalog-notes.cjs"),
     );
     expect(cfg.indexOf("semantic-release-changelog.cjs")).toBeLessThan(
       cfg.indexOf("@semantic-release/npm"),
