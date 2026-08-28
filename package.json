@@ -1,22 +1,46 @@
 {
   "name": "@brainervirus/commandcode-go-opencode-provider",
   "version": "0.5.0",
+  "description": "Command Code API provider for opencode — use Claude, GPT, Gemini, DeepSeek, Qwen, Kimi, GLM, MiniMax, and Step models via Command Code",
+  "keywords": [
+    "ai",
+    "claude",
+    "commandcode",
+    "deepseek",
+    "gemini",
+    "glm",
+    "gpt",
+    "kimi",
+    "llm",
+    "minimax",
+    "opencode",
+    "opencode-plugin",
+    "opencode-provider",
+    "qwen"
+  ],
+  "homepage": "https://github.com/BrainerVirus/opencode-commandcode-provider#readme",
+  "bugs": {
+    "url": "https://github.com/BrainerVirus/opencode-commandcode-provider/issues"
+  },
+  "license": "MIT",
   "author": "Brent Weatherall",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/BrainerVirus/opencode-commandcode-provider.git"
   },
+  "files": [
+    "index.ts",
+    "plugin.ts",
+    "models.json",
+    "manifest.json",
+    "_version.txt",
+    "README.md",
+    "CHANGELOG.md",
+    "src/"
+  ],
+  "type": "module",
   "main": "index.ts",
-  "devDependencies": {
-    "@semantic-release/commit-analyzer": "13.0.1",
-    "@semantic-release/github": "12.0.9",
-    "@semantic-release/npm": "13.1.5",
-    "@semantic-release/release-notes-generator": "14.1.1",
-    "@types/node": "^25.9.1",
-    "ai": "6.0.191",
-    "semantic-release": "25.0.9",
-    "typescript": "^6.0.3"
-  },
+  "types": "index.ts",
   "exports": {
     ".": {
       "import": "./index.ts"
@@ -25,36 +49,15 @@
       "import": "./plugin.ts"
     }
   },
-  "bugs": {
-    "url": "https://github.com/BrainerVirus/opencode-commandcode-provider/issues"
-  },
-  "description": "Command Code API provider for opencode — use Claude, GPT, Gemini, DeepSeek, Qwen, Kimi, GLM, MiniMax, and Step models via Command Code",
-  "engines": {
-    "bun": ">=1.0.0"
-  },
-  "files": ["index.ts", "plugin.ts", "models.json", "manifest.json", "_version.txt", "README.md", "CHANGELOG.md", "src/"],
-  "homepage": "https://github.com/BrainerVirus/opencode-commandcode-provider#readme",
-  "keywords": [
-    "opencode",
-    "opencode-provider",
-    "opencode-plugin",
-    "commandcode",
-    "ai",
-    "llm",
-    "claude",
-    "gpt",
-    "gemini",
-    "deepseek",
-    "qwen",
-    "kimi",
-    "glm",
-    "minimax"
-  ],
-  "license": "MIT",
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
+    "lint": "oxlint --deny-warnings src scripts plugin.ts index.ts tests",
+    "lint:fix": "oxlint --fix src scripts plugin.ts index.ts tests",
+    "format": "oxfmt src scripts plugin.ts index.ts tests package.json tsconfig.json release.config.cjs",
+    "format:check": "oxfmt --check src scripts plugin.ts index.ts tests package.json tsconfig.json release.config.cjs",
+    "check": "bun run lint && bun run format:check && bun test tests/unit/ && bun run typecheck",
     "test": "bun test tests/unit/",
     "test:integration": "bun test tests/integration/",
     "test:all": "bun test",
@@ -65,9 +68,22 @@
     "sync:global": "bun run scripts/sync-models.ts --update-global",
     "catalog:ci": "bun run scripts/catalog-sync-ci.ts"
   },
-  "type": "module",
-  "types": "index.ts",
+  "devDependencies": {
+    "@semantic-release/commit-analyzer": "13.0.1",
+    "@semantic-release/github": "12.0.9",
+    "@semantic-release/npm": "13.1.5",
+    "@semantic-release/release-notes-generator": "14.1.1",
+    "@types/node": "^25.9.1",
+    "ai": "6.0.191",
+    "oxfmt": "0.63.0",
+    "oxlint": "1.78.0",
+    "semantic-release": "25.0.9",
+    "typescript": "^6.0.3"
+  },
   "peerDependencies": {
     "ai": ">=6.0.0"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
   }
 }

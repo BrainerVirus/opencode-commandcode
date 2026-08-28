@@ -6,35 +6,35 @@ import type {
   LanguageModelV3Content,
   LanguageModelV3Usage,
   LanguageModelV3FinishReason,
-} from "@ai-sdk/provider"
-import { buildRequest } from "./convert.js"
-import { parseStreamEvents } from "./stream.js"
+} from "@ai-sdk/provider";
+import { buildRequest } from "./convert.js";
+import { parseStreamEvents } from "./stream.js";
 
-const DEFAULT_BASE_URL = "https://api.commandcode.ai"
+const DEFAULT_BASE_URL = "https://api.commandcode.ai";
 // x-command-code-version must match the Command Code CLI version for API compatibility
-const CC_VERSION = "0.26.20"
+const CC_VERSION = "0.26.20";
 
 export interface CommandCodeModelOptions {
-  apiKey: string
-  baseURL?: string
-  headers?: Record<string, string>
+  apiKey: string;
+  baseURL?: string;
+  headers?: Record<string, string>;
 }
 
 export class CommandCodeLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = "v3" as const
-  readonly provider = "commandcode"
-  readonly modelId: string
-  supportedUrls: Record<string, RegExp[]> = {}
+  readonly specificationVersion = "v3" as const;
+  readonly provider = "commandcode";
+  readonly modelId: string;
+  supportedUrls: Record<string, RegExp[]> = {};
 
-  private opts: CommandCodeModelOptions
+  private opts: CommandCodeModelOptions;
 
   constructor(modelId: string, opts: CommandCodeModelOptions) {
-    this.modelId = modelId
-    this.opts = opts
+    this.modelId = modelId;
+    this.opts = opts;
   }
 
   private get baseURL(): string {
-    return this.opts.baseURL ?? DEFAULT_BASE_URL
+    return this.opts.baseURL ?? DEFAULT_BASE_URL;
   }
 
   private buildHeaders(): Record<string, string> {
@@ -45,19 +45,22 @@ export class CommandCodeLanguageModel implements LanguageModelV3 {
       "x-cli-environment": "production",
       "x-project-slug": "opencode",
       ...this.opts.headers,
-    }
+    };
   }
 
   async doStream(options: LanguageModelV3CallOptions): Promise<LanguageModelV3StreamResult> {
-    const body = buildRequest(this.modelId, options)
-    const requestBody = JSON.stringify(body)
+    const body = buildRequest(this.modelId, options);
+    const requestBody = JSON.stringify(body);
 
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(new Error("Request timed out after 5 minutes")), 300_000)
-    const userSignal = options.abortSignal
+    const controller = new AbortController();
+    const timeout = setTimeout(
+      () => controller.abort(new Error("Request timed out after 5 minutes")),
+      300_000,
+    );
+    const userSignal = options.abortSignal;
     if (userSignal) {
-      const onAbort = () => controller.abort(userSignal.reason)
-      userSignal.addEventListener("abort", onAbort, { once: true })
+      const onAbort = () => controller.abort(userSignal.reason);
+      userSignal.addEventListener("abort", onAbort, { once: true });
     }
 
     try {
@@ -66,94 +69,100 @@ export class CommandCodeLanguageModel implements LanguageModelV3 {
         headers: this.buildHeaders(),
         body: requestBody,
         signal: controller.signal,
-      })
+      });
 
       if (!response.ok) {
-        const errorBody = await response.text().catch(() => "")
-        let errorMessage = `Command Code API error: ${response.status} ${response.statusText}`
+        const errorBody = await response.text().catch(() => "");
+        let errorMessage = `Command Code API error: ${response.status} ${response.statusText}`;
         try {
-          const parsed = JSON.parse(errorBody)
-          if (parsed.error?.message) errorMessage = parsed.error.message
-          else if (parsed.message) errorMessage = parsed.message
+          const parsed = JSON.parse(errorBody);
+          if (parsed.error?.message) errorMessage = parsed.error.message;
+          else if (parsed.message) errorMessage = parsed.message;
         } catch {
           // intentionally silent: error body is not JSON
-        }        throw new Error(`${errorMessage} [model=${this.modelId}]`)
+        }
+        throw new Error(`${errorMessage} [model=${this.modelId}]`);
       }
 
       if (!response.body) {
-        throw new Error(`Command Code API returned no body [model=${this.modelId}]`)
+        throw new Error(`Command Code API returned no body [model=${this.modelId}]`);
       }
 
-      const responseHeaders: Record<string, string> = {}
+      const responseHeaders: Record<string, string> = {};
       response.headers.forEach((v, k) => {
-        responseHeaders[k] = v
-      })
+        responseHeaders[k] = v;
+      });
 
       return {
         stream: parseStreamEvents(response.body as ReadableStream<Uint8Array>),
         request: { body: requestBody },
         response: { headers: responseHeaders },
-      }
+      };
     } finally {
-      clearTimeout(timeout)
+      clearTimeout(timeout);
     }
   }
 
   async doGenerate(options: LanguageModelV3CallOptions): Promise<LanguageModelV3GenerateResult> {
-    const { stream } = await this.doStream(options)
+    const { stream } = await this.doStream(options);
 
-    const textParts: string[] = []
-    const reasoningParts: string[] = []
-    const content: LanguageModelV3Content[] = []
-    let finishReason: LanguageModelV3FinishReason = { unified: "stop", raw: "stop" }
+    const textParts: string[] = [];
+    const reasoningParts: string[] = [];
+    const content: LanguageModelV3Content[] = [];
+    let finishReason: LanguageModelV3FinishReason = { unified: "stop", raw: "stop" };
     let usage: LanguageModelV3Usage = {
-      inputTokens: { total: undefined, noCache: undefined, cacheRead: undefined, cacheWrite: undefined },
+      inputTokens: {
+        total: undefined,
+        noCache: undefined,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
       outputTokens: { total: undefined, text: undefined, reasoning: undefined },
-    }
+    };
 
-    const reader = stream.getReader()
+    const reader = stream.getReader();
     try {
       while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
+        const { done, value } = await reader.read();
+        if (done) break;
 
         switch (value.type) {
           case "text-delta":
-            textParts.push(value.delta)
-            break
+            textParts.push(value.delta);
+            break;
           case "reasoning-delta":
-            reasoningParts.push(value.delta)
-            break
+            reasoningParts.push(value.delta);
+            break;
           case "tool-call":
             content.push({
               type: "tool-call",
               toolCallId: value.toolCallId,
               toolName: value.toolName,
               input: value.input,
-            })
-            break
+            });
+            break;
           case "finish":
-            finishReason = value.finishReason
-            usage = value.usage
-            break
+            finishReason = value.finishReason;
+            usage = value.usage;
+            break;
         }
       }
     } finally {
-      reader.releaseLock()
-      stream.cancel()
+      reader.releaseLock();
+      stream.cancel();
     }
 
-    const text = textParts.join("")
-    if (text) content.unshift({ type: "text", text })
+    const text = textParts.join("");
+    if (text) content.unshift({ type: "text", text });
 
-    const reasoning = reasoningParts.join("")
-    if (reasoning) content.unshift({ type: "reasoning", text: reasoning })
+    const reasoning = reasoningParts.join("");
+    if (reasoning) content.unshift({ type: "reasoning", text: reasoning });
 
     return {
       content,
       finishReason,
       usage,
       warnings: [],
-    }
+    };
   }
 }
