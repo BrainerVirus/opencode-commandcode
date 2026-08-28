@@ -109,8 +109,12 @@ describe("release.config.cjs", () => {
   test("publishes the root package then GitHub Release", () => {
     const cfg = read("release.config.cjs")
     expect(cfg).toContain("@semantic-release/commit-analyzer")
+    expect(cfg).toContain("./scripts/semantic-release-catalog-notes.cjs")
     expect(cfg).toContain("@semantic-release/npm")
     expect(cfg).toContain("@semantic-release/github")
+    expect(cfg.indexOf("semantic-release-catalog-notes.cjs")).toBeLessThan(
+      cfg.indexOf("@semantic-release/release-notes-generator"),
+    )
     expect(cfg.indexOf("@semantic-release/npm")).toBeLessThan(cfg.indexOf("@semantic-release/github"))
   })
 })
