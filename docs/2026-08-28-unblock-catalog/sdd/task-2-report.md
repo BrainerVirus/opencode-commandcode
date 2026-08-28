@@ -13,7 +13,7 @@
 | Hash | Message |
 |------|---------|
 | `131ef76` | `fix: load bundled catalog without leaking plugin logs into OpenCode` |
-| *(new)* | `fix: isolate plugin test state and add CA-04/CA-05 coverage` |
+| `fb0d878` | `fix: isolate plugin test state and add CA-04/CA-05 coverage` |
 
 ## TDD workflow
 
