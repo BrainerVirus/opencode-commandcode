@@ -13,10 +13,12 @@ import {
   writeStartupSummary,
   pluginStateDir,
 } from "./src/startup.js"
+import type { CatalogManifest } from "./src/manifest.js"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const MODELS_PATH = join(__dirname, "models.json")
 const VERSION_PATH = join(__dirname, "_version.txt")
+const MANIFEST_PATH = join(__dirname, "manifest.json")
 
 interface PluginFileConfig {
   disableModelSync?: boolean
@@ -44,7 +46,18 @@ function loadBundledModels(): ModelEntry[] | null {
   }
 }
 
+function readBundledManifest(): CatalogManifest | null {
+  if (!existsSync(MANIFEST_PATH)) return null
+  try {
+    return JSON.parse(readFileSync(MANIFEST_PATH, "utf-8")) as CatalogManifest
+  } catch {
+    return null
+  }
+}
+
 function readBundledVersion(): string | null {
+  const manifest = readBundledManifest()
+  if (manifest?.commandCodeVersion) return manifest.commandCodeVersion
   if (!existsSync(VERSION_PATH)) return null
   try {
     const parts = readFileSync(VERSION_PATH, "utf-8").split("\n")
@@ -99,6 +112,13 @@ export default async function commandcodePlugin() {
           models = bundled
           catalogSource = "bundled"
           commandCodeVersion = readBundledVersion()
+          const manifest = readBundledManifest()
+          if (manifest?.status === "degraded" || manifest?.status === "broken") {
+            degraded = true
+            degradedReason = manifest.status === "broken"
+              ? "bundled catalog marked broken"
+              : "bundled catalog costs include fallback or unmatched models"
+          }
         } else {
           const cached = readCatalogCache()
           if (cached) {

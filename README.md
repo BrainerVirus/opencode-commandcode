@@ -1,127 +1,83 @@
-# commandcode-go-opencode-provider
+# @brainervirus/commandcode-go-opencode-provider
 
 [Command Code](https://commandcode.ai) API provider for [opencode](https://opencode.ai). Use Claude, GPT, Gemini, DeepSeek, Qwen, Kimi, GLM, MiniMax, Step, and other models through a single API key.
 
 > **Forked from** [brent-weatherall/opencode-commandcode-provider](https://github.com/brent-weatherall/opencode-commandcode-provider) — originally created by [Brent Weatherall](https://github.com/brent-weatherall).
 
+This fork keeps a **bundled** model catalog current via CI. You do **not** need a local `command-code` CLI. Catalog patches publish automatically when Command Code ships a new npm version.
+
 ### Key improvements over upstream
 
-- **Auto-load catalog from local command-code** — on startup, scrapes the model catalog (including `reasoningEfforts`) from your locally installed `command-code` npm package. Falls back to bundled `models.json` if the package is not found.
-- **Reasoning effort variants** — models with `reasoningEfforts` automatically get `variants` (e.g. `low` / `medium` / `high` / `xhigh` / `max`). Upgrade `command-code` and restart to pick up new models and efforts — no manual sync needed.
-- **Shared catalog module** — `src/catalog.ts` provides unified package resolution, bundle extraction, and model-building logic used by both the plugin and the sync command.
-- **No more dropped models** — models without cost data now receive a conservative default cost instead of being silently dropped.
-- **Deduplicated display names** — models sharing the same upstream display name (e.g. `MiniMax M3` / `MiniMax M3 Free`) are automatically disambiguated.
-- **Windows compatibility** — sync temp directory now uses `os.tmpdir()` instead of hard-coded `/tmp`.
+- Bundled `models.json` is the default runtime catalog (no local CLI scrape).
+- CLI cost extraction can fail (as on `command-code@1.38.x`) without dropping models.
+- Official docs fill missing costs; leftover models use a conservative fallback (`degraded` in `manifest.json`).
+- Reasoning effort **variants** on models that declare `reasoningEfforts`.
+- Quiet OpenCode startup (diagnostics go to `startup.json`, not stdout).
 
 ## Quick Start
 
-### 1. Install
+### 1. Install the plugin
 
-```bash
-opencode plugin @fanfan4204/commandcode-go-opencode-provider
+```json
+{
+  "plugin": ["@brainervirus/commandcode-go-opencode-provider@latest"]
+}
 ```
 
-This installs the provider and registers all available models automatically.
+Pin a version instead of `@latest` if you do not want automatic catalog patches.
 
-> **Tip:** For the latest model catalog (including reasoning effort variants), install the `command-code` CLI globally:
-> ```bash
-> npm install -g command-code
-> ```
-> Without it, the plugin falls back to the bundled `models.json` which may be outdated.
+`file://` checkouts are **not** updated by npm; `git pull` after CI commits, or switch to the npm plugin line.
 
-### 2. Connect
+### 2. Provider transport (Command Code Provider API)
 
-Run `/connect` in opencode, search for **Command Code**, and enter your API key:
+This plugin supplies model metadata. Point OpenCode at Command Code's documented Provider API:
 
+```json
+{
+  "plugin": ["@brainervirus/commandcode-go-opencode-provider@latest"],
+  "provider": {
+    "commandcode": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Command Code GOAT",
+      "env": ["COMMANDCODE_API_KEY"],
+      "options": {
+        "baseURL": "https://api.commandcode.ai/provider/v1"
+      }
+    }
+  }
+}
 ```
-/connect
-```
 
-### 3. Select a model
+### 3. Connect
 
-Run `/models` to pick from available models:
+Run `/connect` in opencode, search for **Command Code**, and enter your API key, or set `COMMANDCODE_API_KEY`.
+
+### 4. Select a model
 
 ```
 /models
 ```
 
-## Manual Configuration
+## Optional local CLI override
 
-If you prefer to configure manually, add this to your `opencode.json`:
-
-```json
-{
-  "plugin": ["@fanfan4204/commandcode-go-opencode-provider/server"],
-  "provider": {
-    "commandcode": {
-      "npm": "@fanfan4204/commandcode-go-opencode-provider",
-      "name": "Command Code",
-      "env": ["COMMANDCODE_API_KEY"]
-    }
-  },
-  "model": "commandcode/deepseek-v4-flash"
-}
-```
-
-The plugin auto-registers models at startup. It prefers the model catalog (including reasoning effort variants) from a locally installed [`command-code`](https://www.npmjs.com/package/command-code) package, and falls back to the bundled [`models.json`](./models.json) if that package is not found. You only need the `provider.commandcode` block — no need to list individual models.
-
-Optional overrides:
-
-- Env: `COMMANDCODE_PACKAGE_PATH` — path to the `command-code` package root (or its `dist/index.mjs`)
-- Config file `~/.config/opencode/commandcode-go-opencode-provider.json`:
-  ```json
-  {
-    "commandCodePackagePath": "C:/Users/you/AppData/Roaming/npm/node_modules/command-code",
-    "disableModelSync": false
-  }
-  ```
-
-### Environment Variable
-
-Set `COMMANDCODE_API_KEY` instead of using `/connect`:
-
-```bash
-COMMANDCODE_API_KEY=your-key opencode
-```
-
-## Available Models
-
-The full model list is maintained in [`models.json`](./models.json) as a fallback. Upgrade your local/global `command-code` install to pick up new models and reasoning efforts on the next OpenCode start. Run `bun run sync` to refresh the committed `models.json` from local `command-code` (or npm latest with `--remote`).
+Maintainers only. OpenCode will scrape a local `command-code` install when `COMMANDCODE_PACKAGE_PATH` or `commandCodePackagePath` in `~/.config/opencode/commandcode-go-opencode-provider.json` is set.
 
 ## Development
 
 ```bash
-git clone https://github.com/FanFan4204/opencode-commandcode-provider.git
+git clone https://github.com/BrainerVirus/opencode-commandcode-provider.git
 cd opencode-commandcode-provider
 bun install
+bun test tests/unit/
 ```
-
-For local testing, create `opencode.local.json` (gitignored) with `file://` paths:
-
-```json
-{
-  "plugin": ["file:///path/to/@fanfan4204/commandcode-go-opencode-provider/server"],
-  "provider": {
-    "commandcode": {
-      "npm": "file:///path/to/commandcode-go-opencode-provider",
-      "name": "Command Code (local)",
-      "env": ["COMMANDCODE_API_KEY"]
-    }
-  }
-}
-```
-
-Run `opencode --config opencode.local.json` to test with your local build.
-
-### Sync Models
 
 ```bash
-bun run sync              # update models.json from local command-code (npm latest if missing)
-bun run sync -- --remote  # force download latest command-code tarball from npm
-bun run sync:global       # update models.json + write to ~/.config/opencode/opencode.jsonc
+bun run sync -- --remote  # refresh models.json + manifest.json from command-code@latest
 ```
 
-At runtime OpenCode does not need `bun run sync` if `command-code` is installed locally or globally — the plugin scrapes that package on startup.
+CI (`.github/workflows/catalog-sync.yml`) runs that every 6 hours, commits catalog files to `main`, publishes an npm patch when `NPMJS` is set, and creates a GitHub Release **after** publish. Model extraction failures open a `catalog-break` issue and do not publish.
+
+The GitHub Actions secret name is `NPMJS` (same as workit). It is mapped to both `NPM_TOKEN` and `NODE_AUTH_TOKEN`.
 
 ## License
 

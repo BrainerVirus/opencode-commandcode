@@ -1,10 +1,10 @@
 {
-  "name": "@fanfan4204/commandcode-go-opencode-provider",
-  "version": "0.4.1",
+  "name": "@brainervirus/commandcode-go-opencode-provider",
+  "version": "0.5.0",
   "author": "Brent Weatherall",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/FanFan4204/opencode-commandcode-provider.git"
+    "url": "git+https://github.com/BrainerVirus/opencode-commandcode-provider.git"
   },
   "main": "index.ts",
   "devDependencies": {
@@ -21,12 +21,12 @@
     }
   },
   "bugs": {
-    "url": "https://github.com/FanFan4204/opencode-commandcode-provider/issues"
+    "url": "https://github.com/BrainerVirus/opencode-commandcode-provider/issues"
   },
   "description": "Command Code API provider for opencode — use Claude, GPT, Gemini, DeepSeek, Qwen, Kimi, GLM, MiniMax, and Step models via Command Code",
   "engines": { "bun": ">=1.0.0" },
-  "files": ["index.ts", "plugin.ts", "models.json", "_version.txt", "README.md", "src/"],
-  "homepage": "https://github.com/FanFan4204/opencode-commandcode-provider#readme",
+  "files": ["index.ts", "plugin.ts", "models.json", "manifest.json", "_version.txt", "README.md", "CHANGELOG.md", "src/"],
+  "homepage": "https://github.com/BrainerVirus/opencode-commandcode-provider#readme",
   "keywords": [
     "opencode",
     "opencode-provider",
@@ -44,6 +44,9 @@
     "minimax"
   ],
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "test": "bun test tests/unit/",
     "test:integration": "bun test tests/integration/",
@@ -51,7 +54,9 @@
     "typecheck": "tsc --noEmit",
     "generate-readme": "bun run scripts/generate-readme.ts",
     "sync": "bun run scripts/sync-models.ts",
-    "sync:global": "bun run scripts/sync-models.ts --update-global"
+    "sync:global": "bun run scripts/sync-models.ts --update-global",
+    "catalog:ci": "bun run scripts/catalog-sync-ci.ts",
+    "publish:if-needed": "bun run scripts/publish-if-needed.ts"
   },
   "type": "module",
   "types": "index.ts",

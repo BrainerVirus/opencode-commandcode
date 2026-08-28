@@ -2,12 +2,15 @@
   "$schema": "https://opencode.ai/config.json",
   "model": "commandcode/deepseek-v4-flash",
   "small_model": "commandcode/deepseek-v4-flash",
-  "plugin": ["commandcode-go-opencode-provider/server"],
+  "plugin": ["@brainervirus/commandcode-go-opencode-provider/server"],
   "provider": {
     "commandcode": {
-      "npm": "commandcode-go-opencode-provider",
+      "npm": "@ai-sdk/openai-compatible",
       "name": "Command Code",
-      "env": ["COMMANDCODE_API_KEY"]
+      "env": ["COMMANDCODE_API_KEY"],
+      "options": {
+        "baseURL": "https://api.commandcode.ai/provider/v1"
+      }
     }
   }
 }
