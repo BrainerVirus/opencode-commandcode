@@ -1,5 +1,5 @@
 {
-  "name": "@brainervirus/commandcode-go-opencode-provider",
+  "name": "@brainervirus/opencode-commandcode",
   "version": "0.5.0",
   "description": "Command Code API provider for opencode — use Claude, GPT, Gemini, DeepSeek, Qwen, Kimi, GLM, MiniMax, and Step models via Command Code",
   "keywords": [
@@ -18,15 +18,15 @@
     "opencode-provider",
     "qwen"
   ],
-  "homepage": "https://github.com/BrainerVirus/opencode-commandcode-provider#readme",
+  "homepage": "https://github.com/BrainerVirus/opencode-commandcode#readme",
   "bugs": {
-    "url": "https://github.com/BrainerVirus/opencode-commandcode-provider/issues"
+    "url": "https://github.com/BrainerVirus/opencode-commandcode/issues"
   },
   "license": "MIT",
   "author": "Brent Weatherall",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/BrainerVirus/opencode-commandcode-provider.git"
+    "url": "git+https://github.com/BrainerVirus/opencode-commandcode.git"
   },
   "files": [
     "index.ts",

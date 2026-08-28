@@ -1,12 +1,14 @@
-# @brainervirus/commandcode-go-opencode-provider
+# @brainervirus/opencode-commandcode
 
-[![npm version](https://img.shields.io/npm/v/@brainervirus/commandcode-go-opencode-provider)](https://www.npmjs.com/package/@brainervirus/commandcode-go-opencode-provider)
-[![CI](https://img.shields.io/github/actions/workflow/status/BrainerVirus/opencode-commandcode-provider/ci.yml?branch=main&label=CI)](https://github.com/BrainerVirus/opencode-commandcode-provider/actions)
+[![npm version](https://img.shields.io/npm/v/@brainervirus/opencode-commandcode)](https://www.npmjs.com/package/@brainervirus/opencode-commandcode)
+[![CI](https://img.shields.io/github/actions/workflow/status/BrainerVirus/opencode-commandcode/ci.yml?branch=main&label=CI)](https://github.com/BrainerVirus/opencode-commandcode/actions)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 [Command Code](https://commandcode.ai) API provider for [opencode](https://opencode.ai). Use Claude, GPT, Gemini, DeepSeek, Qwen, Kimi, GLM, MiniMax, Step, and other models through a single API key.
 
 This package keeps a **bundled** model catalog current via CI. You do **not** need a local `command-code` CLI. Catalog patches publish automatically after a green PR merges to `main`.
+
+Previously published as `@brainervirus/commandcode-go-opencode-provider`. Use this name instead.
 
 ## Credits
 
@@ -26,7 +28,7 @@ This package is based on **[FanFan4204/opencode-commandcode-provider](https://gi
 
 ```json
 {
-  "plugin": ["@brainervirus/commandcode-go-opencode-provider@latest"]
+  "plugin": ["@brainervirus/opencode-commandcode@latest"]
 }
 ```
 
@@ -40,7 +42,7 @@ This plugin supplies model metadata. Point OpenCode at Command Code's documented
 
 ```json
 {
-  "plugin": ["@brainervirus/commandcode-go-opencode-provider@latest"],
+  "plugin": ["@brainervirus/opencode-commandcode@latest"],
   "provider": {
     "commandcode": {
       "npm": "@ai-sdk/openai-compatible",
@@ -66,13 +68,13 @@ Run `/connect` in opencode, search for **Command Code**, and enter your API key,
 
 ## Optional local CLI override
 
-Maintainers only. OpenCode will scrape a local `command-code` install when `COMMANDCODE_PACKAGE_PATH` or `commandCodePackagePath` in `~/.config/opencode/commandcode-go-opencode-provider.json` is set.
+Maintainers only. OpenCode will scrape a local `command-code` install when `COMMANDCODE_PACKAGE_PATH` or `commandCodePackagePath` in `~/.config/opencode/opencode-commandcode.json` is set.
 
 ## Development
 
 ```bash
-git clone https://github.com/BrainerVirus/opencode-commandcode-provider.git
-cd opencode-commandcode-provider
+git clone https://github.com/BrainerVirus/opencode-commandcode.git
+cd opencode-commandcode
 bun install
 bun run check            # oxlint + oxfmt + bun test + tsc (same stack as workit)
 ```
