@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- CI catalog watch every 6 hours, `catalog-break` GitHub issues, and automatic npm patch + GitHub Release after publish.
+- GitHub flow: PR-gated `main`, CI matrix (`check (test|typecheck|pack)`), semantic-release on merge, catalog updates as PRs.
 - `manifest.json` describing the bundled catalog (status, cost sources, command-code version).
 - First publish of `@brainervirus/commandcode-go-opencode-provider`.
 - Last-good catalog cache and silent `startup.json` diagnostics under the plugin state dir.
