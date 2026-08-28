@@ -119,6 +119,9 @@ describe("release.yml", () => {
     const sync = wf.jobs.release.steps.find((s) => s.name === "Sync release manifests to main");
     expect(sync?.run).toContain("CHANGELOG.md");
     expect(sync?.run).toMatch(/git add package\.json manifest\.json CHANGELOG\.md/);
+    expect(sync?.run).toContain("gh pr merge --auto --squash --delete-branch");
+    expect(sync?.run).not.toContain("auto-merge unavailable");
+    expect(sync?.run).not.toMatch(/\|\|\s*echo/);
   });
 });
 
@@ -143,6 +146,9 @@ describe("catalog-sync.yml", () => {
       .map((s) => `${s.run ?? ""}\n${JSON.stringify(s.env ?? {})}`)
       .join("\n");
     expect(blob).toContain("catalog-sync-ci.ts");
+    expect(read("scripts/catalog-sync-ci.ts")).toContain(
+      "gh pr merge --auto --squash --delete-branch",
+    );
     expect(blob).not.toMatch(/\bnpm publish\b/);
     expect(blob).not.toContain("semantic-release");
     expect(blob).not.toContain("publish-if-needed");

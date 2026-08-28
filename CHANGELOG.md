@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Catalog refresh and post-release manifest PRs auto-merge when required CI is green.
+
 ## [0.7.0] - 2026-08-28
 
 ### Changed
