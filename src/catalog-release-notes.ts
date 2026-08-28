@@ -89,9 +89,8 @@ export function renderCatalogReleaseNotes(input: CatalogReleaseInput): string {
   const sections = [
     headline(input.status),
     "",
-    "| | |",
-    "| --- | --- |",
     `| Plugin | ${input.pluginVersion} |`,
+    "| --- | --- |",
     `| Command Code | ${input.commandCodeVersion} |`,
     `| Models | ${input.modelCount} (${input.reasoningModelCount} with reasoning) |`,
     `| Prices | ${priceSummary(input.costSources)} |`,
@@ -157,9 +156,10 @@ export function renderCatalogReleaseNotes(input: CatalogReleaseInput): string {
 export function catalogReleaseNotesFromFiles(input: {
   manifest: CatalogManifest;
   models: PricedModel[];
+  pluginVersion?: string;
 }): string {
   return renderCatalogReleaseNotes({
-    pluginVersion: input.manifest.pluginVersion,
+    pluginVersion: input.pluginVersion ?? input.manifest.pluginVersion,
     commandCodeVersion: input.manifest.commandCodeVersion,
     modelCount: input.manifest.modelCount,
     reasoningModelCount: input.manifest.reasoningModelCount,

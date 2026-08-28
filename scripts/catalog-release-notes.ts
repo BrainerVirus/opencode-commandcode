@@ -8,4 +8,5 @@ import type { PricedModel } from "../src/catalog-release-notes.js";
 const ROOT = join(import.meta.dir, "..");
 const manifest = JSON.parse(readFileSync(join(ROOT, "manifest.json"), "utf-8")) as CatalogManifest;
 const models = JSON.parse(readFileSync(join(ROOT, "models.json"), "utf-8")) as PricedModel[];
-process.stdout.write(catalogReleaseNotesFromFiles({ manifest, models }));
+const pluginVersion = process.argv[2];
+process.stdout.write(catalogReleaseNotesFromFiles({ manifest, models, pluginVersion }));

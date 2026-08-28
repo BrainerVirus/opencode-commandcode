@@ -48,7 +48,7 @@ jobs:
         run: |
           git checkout -- package.json manifest.json 2>/dev/null || true
           bun run scripts/sync-release-manifests.ts
-          if [[ -z "$(git status --porcelain -- package.json manifest.json)" ]]; then
+          if [[ -z "$(git status --porcelain -- package.json manifest.json CHANGELOG.md)" ]]; then
             echo "manifests already match the latest tag"
             exit 0
           fi
@@ -58,11 +58,11 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git checkout -b "${BRANCH}"
-          git add package.json manifest.json
+          git add package.json manifest.json CHANGELOG.md
           git commit -m "chore(release): sync manifests to v${VERSION}"
           git push -u origin "${BRANCH}"
           gh pr create \
             --title "chore(release): sync manifests to v${VERSION}" \
-            --body "Automated post-release manifest alignment. Sets package.json and manifest.json to the released ${VERSION}." \
+            --body "Automated post-release manifest alignment. Sets package.json, manifest.json, and CHANGELOG.md to the released ${VERSION}." \
             --base main --head "${BRANCH}"
           gh pr merge --auto --squash --delete-branch || echo "auto-merge unavailable — merge the sync PR after CI is green"

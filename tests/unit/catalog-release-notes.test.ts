@@ -1,8 +1,12 @@
 import { expect, test, describe } from "bun:test";
+import { execFileSync } from "node:child_process";
+import { join } from "node:path";
 import {
   renderCatalogReleaseNotes,
   type CatalogReleaseInput,
 } from "../../src/catalog-release-notes.ts";
+
+const ROOT = join(import.meta.dir, "../..");
 
 function input(partial: Partial<CatalogReleaseInput> = {}): CatalogReleaseInput {
   return {
@@ -43,6 +47,12 @@ describe("renderCatalogReleaseNotes", () => {
     expect(md).toContain("1 models.dev");
     expect(md).toContain("1 free");
     expect(md).toContain("1 no listed price");
+  });
+
+  test("uses Plugin as the table header so GitHub does not render a blank row", () => {
+    const md = renderCatalogReleaseNotes(input());
+    expect(md).toContain("| Plugin | 0.5.0 |\n| --- | --- |");
+    expect(md).not.toContain("| | |");
   });
 
   test("collapses models.dev, free, and unmatched lists", () => {
@@ -94,5 +104,16 @@ describe("renderCatalogReleaseNotes", () => {
     expect(md).toContain("<summary>Machine-readable catalog</summary>");
     expect(md).toContain('"status": "degraded"');
     expect(md).toContain('"unmatched": 1');
+  });
+});
+
+describe("catalog-release-notes CLI", () => {
+  test("honors an explicit plugin version so GitHub notes match the tag", () => {
+    const out = execFileSync("bun", ["scripts/catalog-release-notes.ts", "0.6.0"], {
+      encoding: "utf8",
+      cwd: ROOT,
+    });
+    expect(out).toContain("| Plugin | 0.6.0 |");
+    expect(out).toContain('"pluginVersion": "0.6.0"');
   });
 });

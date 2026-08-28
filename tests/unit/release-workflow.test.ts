@@ -8,6 +8,26 @@ const json = <T>(rel: string) => JSON.parse(read(rel)) as T;
 
 const NPMJS = "${{ secrets.NPMJS }}";
 
+describe("CHANGELOG.md", () => {
+  test("records shipped versions under Keep a Changelog headings", () => {
+    const log = read("CHANGELOG.md");
+    expect(log).toContain("## [Unreleased]");
+    expect(log).toContain("## [0.6.0]");
+    expect(log).toContain("## [0.5.1]");
+    expect(log).toContain("## [0.5.0]");
+  });
+});
+
+describe("README credits", () => {
+  test("does not restate Command Code wiring or MIT copyright in the thanks sentence", () => {
+    const readme = read("README.md");
+    expect(readme).toContain("Brent for the original plugin, catalog extraction.");
+    expect(readme).not.toContain(
+      "and Command Code wiring. The license remains MIT; copyright stays with Brent Weatherall.",
+    );
+  });
+});
+
 describe("package.json publish identity", () => {
   test("is the scoped public package on BrainerVirus/opencode-commandcode", () => {
     const pkg = json<{
@@ -92,6 +112,9 @@ describe("release.yml", () => {
     expect(release?.env?.NODE_AUTH_TOKEN).toBe(NPMJS);
     const blob = wf.jobs.release.steps.map((s) => s.run ?? "").join("\n");
     expect(blob).not.toContain("publish-if-needed");
+    const sync = wf.jobs.release.steps.find((s) => s.name === "Sync release manifests to main");
+    expect(sync?.run).toContain("CHANGELOG.md");
+    expect(sync?.run).toMatch(/git add package\.json manifest\.json CHANGELOG\.md/);
   });
 });
 
@@ -127,14 +150,26 @@ describe("release.config.cjs", () => {
     const cfg = read("release.config.cjs");
     expect(cfg).toContain("@semantic-release/commit-analyzer");
     expect(cfg).toContain("./scripts/semantic-release-catalog-notes.cjs");
+    expect(cfg).toContain("./scripts/semantic-release-changelog.cjs");
     expect(cfg).toContain("@semantic-release/npm");
     expect(cfg).toContain("@semantic-release/github");
     expect(cfg.indexOf("semantic-release-catalog-notes.cjs")).toBeLessThan(
       cfg.indexOf("@semantic-release/release-notes-generator"),
     );
+    expect(cfg.indexOf("semantic-release-changelog.cjs")).toBeLessThan(
+      cfg.indexOf("@semantic-release/npm"),
+    );
     expect(cfg.indexOf("@semantic-release/npm")).toBeLessThan(
       cfg.indexOf("@semantic-release/github"),
     );
+  });
+});
+
+describe("semantic-release-catalog-notes.cjs", () => {
+  test("passes nextRelease.version into the catalog notes script", () => {
+    const src = read("scripts/semantic-release-catalog-notes.cjs");
+    expect(src).toContain("nextRelease");
+    expect(src).toContain("catalog-release-notes.ts");
   });
 });
 
