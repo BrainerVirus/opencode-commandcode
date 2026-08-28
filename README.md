@@ -77,7 +77,7 @@ bun run sync -- --remote  # refresh models.json + manifest.json from command-cod
 
 CI (`.github/workflows/catalog-sync.yml`) runs that every 6 hours, commits catalog files to `main`, publishes an npm patch when `NPMJS` is set, and creates a GitHub Release **after** publish. Model extraction failures open a `catalog-break` issue and do not publish.
 
-The GitHub Actions secret name is `NPMJS` (same as workit). It is mapped to both `NPM_TOKEN` and `NODE_AUTH_TOKEN`.
+The GitHub Actions secret name is `NPMJS` (same as workit). It is mapped to both `NPM_TOKEN` and `NODE_AUTH_TOKEN`. Use an npm **Automation** token (bypasses 2FA). A login token from `~/.npmrc` fails CI with `EOTP`.
 
 ## License
 
