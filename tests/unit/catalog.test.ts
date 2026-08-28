@@ -158,6 +158,37 @@ describe("generateOpencodeModels", () => {
       high: { reasoningEffort: "high" },
     });
   });
+
+  test("emits attachment and modalities, defaulting to text-only", () => {
+    const models = generateOpencodeModels([
+      {
+        id: "google/gemini-3.5-flash",
+        name: "Gemini 3.5 Flash",
+        tier: "open-source",
+        reasoning: false,
+        tool_call: true,
+        cost: { input: 1.5, output: 9 },
+        limit: { context: 1048576, output: 65536 },
+        attachment: true,
+        modalities: { input: ["text", "image"], output: ["text"] },
+      },
+      {
+        id: "tencent/hy4-preview",
+        name: "Tencent Hy4 Preview",
+        tier: "open-source",
+        reasoning: true,
+        tool_call: true,
+        cost: { input: 0.834, output: 2.501 },
+        limit: { context: 1048576, output: 64000 },
+      },
+    ]);
+    const gemini = models["gemini-3.5-flash"] as Record<string, unknown>;
+    const hy4 = models["hy4-preview"] as Record<string, unknown>;
+    expect(gemini.attachment).toBe(true);
+    expect(gemini.modalities).toEqual({ input: ["text", "image"], output: ["text"] });
+    expect(hy4.attachment).toBe(false);
+    expect(hy4.modalities).toEqual({ input: ["text"], output: ["text"] });
+  });
 });
 
 describe("loadCatalogFromBundle", () => {

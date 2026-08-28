@@ -15,6 +15,8 @@ export interface ModelEntry {
   tool_call: boolean;
   cost: { input: number; output: number; cache_read?: number; cache_write?: number };
   limit: { context: number; output: number };
+  attachment?: boolean;
+  modalities?: { input: string[]; output: string[] };
 }
 
 export interface CostEntry {
@@ -740,6 +742,8 @@ export function generateOpencodeModels(entries: ModelEntry[]): Record<string, un
       name: entry.name,
       reasoning: entry.reasoning,
       tool_call: entry.tool_call,
+      attachment: entry.attachment ?? false,
+      modalities: entry.modalities ?? { input: ["text"], output: ["text"] },
       cost: costObj,
       limit: entry.limit,
     };

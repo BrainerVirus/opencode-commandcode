@@ -15,6 +15,7 @@ import { applyDocCosts, fetchOfficialModelsMarkdown, parseModelsTable } from "..
 import {
   applyFreeCosts,
   applyModelsDevCosts,
+  applyModelsDevModalities,
   fetchModelsDevJson,
   parseModelsDev,
 } from "../src/costs-models-dev.js";
@@ -186,19 +187,18 @@ async function main() {
 
   const thirdPartyIds = new Set<string>();
   const skipAfterFree = new Set([...priced, ...freeIds]);
+  let modelsDevRows: ReturnType<typeof parseModelsDev> = [];
   try {
     const modelsDevJson = await fetchModelsDevJson();
-    const filled = applyModelsDevCosts(
-      entries,
-      parseModelsDev(modelsDevJson),
-      skipAfterFree,
-      thirdPartyIds,
-    );
+    modelsDevRows = parseModelsDev(modelsDevJson);
+    const filled = applyModelsDevCosts(entries, modelsDevRows, skipAfterFree, thirdPartyIds);
     console.log(`  Applied models.dev costs to ${filled} models`);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.log(`  models.dev fill skipped: ${message}`);
   }
+  const modalityFilled = applyModelsDevModalities(entries, modelsDevRows);
+  console.log(`  Applied models.dev modalities to ${modalityFilled} models`);
 
   console.log(`\nWriting ${MODELS_JSON} with ${entries.length} models from ${sourceLabel}...`);
   writeFileSync(MODELS_JSON, JSON.stringify(entries, null, 2) + "\n", "utf-8");

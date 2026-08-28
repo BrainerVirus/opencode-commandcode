@@ -4,8 +4,10 @@ import { join } from "path";
 import {
   applyFreeCosts,
   applyModelsDevCosts,
+  applyModelsDevModalities,
   isFreeSku,
   parseModelsDev,
+  TEXT_ONLY_MODALITIES,
 } from "../../src/costs-models-dev.ts";
 import type { ModelEntry } from "../../src/catalog.ts";
 
@@ -72,6 +74,41 @@ describe("parseModelsDev + applyModelsDevCosts", () => {
     expect(applyModelsDevCosts(models, rows, new Set(), filled)).toBe(1);
     expect(models[0].cost).toEqual({ input: 0.5, output: 3, cache_read: 0.1 });
     expect([...filled]).toEqual(["Qwen/Qwen3.6-Plus"]);
+  });
+});
+
+describe("applyModelsDevModalities", () => {
+  const rows = parseModelsDev(
+    readFileSync(join(import.meta.dir, "../fixtures/models-dev/api.subset.json"), "utf-8"),
+  );
+
+  test("copies vision modalities and defaults unmatched plus cost-only rows to text-only", () => {
+    const models = [
+      model({ id: "google/gemini-3.5-flash", name: "Gemini 3.5 Flash" }),
+      model({ id: "tencent/hy4-preview", name: "Tencent Hy4 Preview" }),
+      model({ id: "Qwen/Qwen3.6-Plus", name: "Qwen 3.6 Plus" }),
+      model({ id: "unknown/not-on-models-dev", name: "Unknown" }),
+      model({
+        id: "inclusionai/ling-3.0-flash-free",
+        name: "Ling 3.0 Flash Free",
+        cost: { input: 0, output: 0 },
+      }),
+    ];
+    const n = applyModelsDevModalities(models, rows);
+    expect(n).toBe(2);
+    expect(models[0].attachment).toBe(true);
+    expect(models[0].modalities).toEqual({
+      input: ["text", "image", "video", "audio", "pdf"],
+      output: ["text"],
+    });
+    expect(models[1].attachment).toBe(false);
+    expect(models[1].modalities).toEqual({ ...TEXT_ONLY_MODALITIES });
+    expect(models[2].attachment).toBe(false);
+    expect(models[2].modalities).toEqual({ ...TEXT_ONLY_MODALITIES });
+    expect(models[3].attachment).toBe(false);
+    expect(models[3].modalities).toEqual({ ...TEXT_ONLY_MODALITIES });
+    expect(models[4].attachment).toBe(false);
+    expect(models[4].modalities).toEqual({ ...TEXT_ONLY_MODALITIES });
   });
 });
 
