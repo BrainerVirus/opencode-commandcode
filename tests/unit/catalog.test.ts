@@ -175,6 +175,23 @@ describe("loadCatalogFromBundle", () => {
     expect(gpt!.reasoning).toBe(true)
     expect(gpt!.reasoningEfforts).toEqual(["low", "high"])
   })
+
+  test("returns models when cost extraction fails", () => {
+    const source = [
+      '(Wt={ANTHROPIC:"anthropic",OPENAI:"openai",VERCEL_AI_GATEWAY:"vercel-ai-gateway"});',
+      'var Aa="chatComplete",Ba="responses",qt=Vt[0];',
+      'var Sn=(Wt=>({',
+      'SONNET_4_6:{id:"claude-sonnet-4-6",provider:Wt.ANTHROPIC,spec:Aa,label:"Sonnet",name:"Claude Sonnet 4.6",description:"d",reasoning:!0,reasoningEfforts:["low","medium","high"],contextWindow:2e5},',
+      'GPT_X:{id:"gpt-5.5",provider:Wt.OPENAI,spec:Ba,label:"GPT",name:"GPT-5.5",description:"d",reasoningEfforts:["low","high"],contextWindow:256000}',
+      '}))(Wt);',
+    ].join("")
+
+    const entries = loadCatalogFromBundle(source)
+    const sonnet = entries.find((e) => e.id === "claude-sonnet-4-6")
+    expect(sonnet).toBeDefined()
+    expect(sonnet!.reasoningEfforts).toEqual(["low", "medium", "high"])
+    expect(sonnet!.cost).toEqual({ input: 0.5, output: 2 })
+  })
 })
 
 describe("resolveCommandCodePackage", () => {

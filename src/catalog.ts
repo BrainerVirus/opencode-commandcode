@@ -540,8 +540,12 @@ export function sortModelEntries(entries: ModelEntry[]): ModelEntry[] {
 
 export function loadCatalogFromBundle(source: string): ModelEntry[] {
   const models = extractModelCatalog(source)
-  const costs = extractCostData(source)
-  const costMap = buildCostMap(costs)
+  let costMap = new Map<string, CostEntry>()
+  try {
+    costMap = buildCostMap(extractCostData(source))
+  } catch {
+    // ponytail: CLI cost map is optional; buildModelEntry applies FALLBACK_COSTS / defaults
+  }
 
   const entries: ModelEntry[] = []
   for (const model of Object.values(models)) {
