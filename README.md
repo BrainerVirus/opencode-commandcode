@@ -10,7 +10,7 @@ This package keeps a **bundled** model catalog current via CI. You do **not** ne
 
 ## Credits
 
-This plugin is based on **[opencode-commandcode-provider](https://github.com/brent-weatherall/opencode-commandcode-provider)** by **[Brent Weatherall](https://github.com/brent-weatherall)**. Thank you for the original OpenCode plugin, catalog extraction, and Command Code wiring. The license remains MIT; copyright stays with Brent Weatherall.
+This package is based on **[FanFan4204/opencode-commandcode-provider](https://github.com/FanFan4204/opencode-commandcode-provider)**. That work started from **[brent-weatherall/opencode-commandcode-provider](https://github.com/brent-weatherall/opencode-commandcode-provider)** by **[Brent Weatherall](https://github.com/brent-weatherall)**. Thank you both — FanFan for the OpenCode provider this repo continues, and Brent for the original plugin, catalog extraction, and Command Code wiring. The license remains MIT; copyright stays with Brent Weatherall.
 
 ### What this package adds
 
