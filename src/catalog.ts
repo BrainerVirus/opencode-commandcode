@@ -50,6 +50,7 @@ export interface LocalCatalogResult {
   models: ModelEntry[]
   version: string
   root: string
+  bundleSource: string
 }
 
 export const FALLBACK_COSTS: Record<string, { input: number; output: number; cache_read?: number; cache_write?: number }> = {
@@ -721,7 +722,7 @@ export function loadCatalogFromLocalCommandCode(options?: {
     const source = readFileSync(resolved.bundlePath, "utf-8")
     const models = loadCatalogFromBundle(source)
     if (models.length === 0) return null
-    return { models, version: resolved.version, root: resolved.root }
+    return { models, version: resolved.version, root: resolved.root, bundleSource: source }
   } catch {
     return null
   }

@@ -4,11 +4,22 @@ import { homedir, tmpdir } from "os"
 import { execSync } from "child_process"
 import {
   NPM_PACKAGE,
+  extractCostData,
+  buildCostMap,
   generateOpencodeModels,
   loadCatalogFromBundle,
   loadCatalogFromLocalCommandCode,
   type ModelEntry,
 } from "../src/catalog.js"
+import { applyDocCosts, fetchOfficialModelsMarkdown, parseModelsTable } from "../src/costs-docs.js"
+
+function cliCostIds(source: string): Set<string> {
+  try {
+    return new Set(buildCostMap(extractCostData(source)).keys())
+  } catch {
+    return new Set()
+  }
+}
 
 const PROJECT_ROOT = join(import.meta.dir, "..")
 const MODELS_JSON = join(PROJECT_ROOT, "models.json")
@@ -122,11 +133,13 @@ async function main() {
   let entries: ModelEntry[]
   let version: string
   let sourceLabel: string
+  let bundleSource: string | null = null
 
   const local = !forceRemote ? loadCatalogFromLocalCommandCode() : null
   if (local) {
     entries = local.models
     version = local.version
+    bundleSource = local.bundleSource
     sourceLabel = `local ${local.root}`
     console.log(`Loaded catalog from local command-code@${version}`)
     console.log(`  Path: ${local.root}`)
@@ -134,11 +147,21 @@ async function main() {
   } else {
     const bundle = await fetchLatestBundle()
     version = bundle.version
+    bundleSource = bundle.source
     sourceLabel = `npm tarball v${version}`
     console.log(`Read CLI bundle v${version} (${(bundle.source.length / 1024).toFixed(0)} KB)`)
     console.log("Extracting model catalog...")
     entries = loadCatalogFromBundle(bundle.source)
     console.log(`  Found ${entries.length} models`)
+  }
+
+  const cliIds = bundleSource ? cliCostIds(bundleSource) : new Set<string>()
+  const docsMd = await fetchOfficialModelsMarkdown()
+  if (docsMd) {
+    const filled = applyDocCosts(entries, parseModelsTable(docsMd), cliIds)
+    console.log(`  Applied official-docs costs to ${filled} models (${cliIds.size} kept CLI costs)`)
+  } else {
+    console.log("  Official docs returned no parseable cost table; keeping CLI/fallback costs")
   }
 
   console.log(`\nWriting ${MODELS_JSON} with ${entries.length} models from ${sourceLabel}...`)
