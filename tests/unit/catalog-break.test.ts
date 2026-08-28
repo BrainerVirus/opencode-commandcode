@@ -18,14 +18,12 @@ describe("renderCatalogBreakBody", () => {
     const body = renderCatalogBreakBody({
       commandCodeVersion: "1.39.0",
       error: "Could not evaluate model catalog",
-      workflowUrl: "https://github.com/BrainerVirus/opencode-commandcode-provider/actions/runs/1",
+      workflowUrl: "https://github.com/BrainerVirus/opencode-commandcode/actions/runs/1",
       bundledCommandCodeVersion: "1.38.1",
     });
     expect(body).toContain("command-code@1.39.0");
     expect(body).toContain("Could not evaluate model catalog");
-    expect(body).toContain(
-      "https://github.com/BrainerVirus/opencode-commandcode-provider/actions/runs/1",
-    );
+    expect(body).toContain("https://github.com/BrainerVirus/opencode-commandcode/actions/runs/1");
     expect(body).toContain("1.38.1");
     expect(body).toContain("src/catalog.ts");
   });

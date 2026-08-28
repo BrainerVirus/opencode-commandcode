@@ -27,13 +27,12 @@ interface PluginFileConfig {
 }
 
 function loadPluginConfig(): PluginFileConfig {
-  const configPath = join(
-    homedir(),
-    ".config",
-    "opencode",
-    "commandcode-go-opencode-provider.json",
-  );
-  if (!existsSync(configPath)) return {};
+  const dir = join(homedir(), ".config", "opencode");
+  const configPath = [
+    join(dir, "opencode-commandcode.json"),
+    join(dir, "commandcode-go-opencode-provider.json"),
+  ].find((p) => existsSync(p));
+  if (!configPath) return {};
   try {
     return JSON.parse(readFileSync(configPath, "utf-8"));
   } catch {

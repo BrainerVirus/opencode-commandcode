@@ -112,7 +112,7 @@ export async function fetchModelsDevJson(): Promise<string> {
     headers: {
       // ponytail: models.dev returns 403 without a browser-like UA; upgrade if they add a real API token
       "User-Agent":
-        "Mozilla/5.0 (compatible; commandcode-go-opencode-provider/0.5; +https://github.com/BrainerVirus/opencode-commandcode-provider)",
+        "Mozilla/5.0 (compatible; opencode-commandcode/0.5; +https://github.com/BrainerVirus/opencode-commandcode)",
       Accept: "application/json",
     },
   });

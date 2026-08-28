@@ -9,7 +9,7 @@ const json = <T>(rel: string) => JSON.parse(read(rel)) as T;
 const NPMJS = "${{ secrets.NPMJS }}";
 
 describe("package.json publish identity", () => {
-  test("is the scoped public package on BrainerVirus/opencode-commandcode-provider", () => {
+  test("is the scoped public package on BrainerVirus/opencode-commandcode", () => {
     const pkg = json<{
       name: string;
       publishConfig?: { access?: string };
@@ -19,11 +19,11 @@ describe("package.json publish identity", () => {
       files?: string[];
       scripts?: Record<string, string>;
     }>("package.json");
-    expect(pkg.name).toBe("@brainervirus/commandcode-go-opencode-provider");
+    expect(pkg.name).toBe("@brainervirus/opencode-commandcode");
     expect(pkg.publishConfig?.access).toBe("public");
-    expect(pkg.repository?.url).toContain("BrainerVirus/opencode-commandcode-provider");
-    expect(pkg.bugs?.url).toContain("BrainerVirus/opencode-commandcode-provider");
-    expect(pkg.homepage).toContain("BrainerVirus/opencode-commandcode-provider");
+    expect(pkg.repository?.url).toContain("BrainerVirus/opencode-commandcode");
+    expect(pkg.bugs?.url).toContain("BrainerVirus/opencode-commandcode");
+    expect(pkg.homepage).toContain("BrainerVirus/opencode-commandcode");
     expect(pkg.files).toContain("manifest.json");
     expect(pkg.scripts?.["verify:release-candidate"]).toContain("verify-release-candidate.ts");
     expect(pkg.scripts?.lint).toContain("oxlint --deny-warnings");
