@@ -15,6 +15,7 @@ const sources = (partial: Partial<CostSources> = {}): CostSources => ({
   cli: 0,
   officialDocs: 0,
   thirdParty: 0,
+  free: 0,
   fallback: 0,
   unmatched: 0,
   ...partial,
@@ -58,7 +59,7 @@ describe("buildManifest", () => {
     expect(manifest.gitCommit).toBeUndefined()
   })
 
-  test("marks degraded when any model used fallback or unmatched costs", () => {
+  test("marks healthy when leftover costs come from models.dev or free SKUs", () => {
     const manifest = buildManifest({
       pluginVersion: "0.5.0",
       commandCodeVersion: "1.38.1",
@@ -66,7 +67,22 @@ describe("buildManifest", () => {
       modelCount: 65,
       reasoningModelCount: 54,
       modelCatalogOk: true,
-      costSources: sources({ officialDocs: 60, fallback: 3, unmatched: 2 }),
+      costSources: sources({ officialDocs: 53, thirdParty: 7, free: 5 }),
+      generatedAt: "2026-08-28T17:00:00.000Z",
+    })
+    expect(manifest.status).toBe("healthy")
+    expect(manifest.extraction.costCatalog).toBe("docs")
+  })
+
+  test("marks degraded only when unmatched costs remain", () => {
+    const manifest = buildManifest({
+      pluginVersion: "0.5.0",
+      commandCodeVersion: "1.38.1",
+      commandCodeTarball: "https://registry.npmjs.org/command-code/-/command-code-1.38.1.tgz",
+      modelCount: 65,
+      reasoningModelCount: 54,
+      modelCatalogOk: true,
+      costSources: sources({ officialDocs: 60, thirdParty: 3, unmatched: 2 }),
       generatedAt: "2026-08-28T17:00:00.000Z",
     })
     expect(manifest.status).toBe("degraded")
@@ -115,19 +131,20 @@ describe("writeManifest", () => {
 })
 
 describe("countCostSources", () => {
-  test("classifies first-hit cli then docs then fallback then unmatched", () => {
+  test("classifies first-hit cli then docs then models.dev then free then unmatched", () => {
     const counted = countCostSources({
-      modelIds: ["a", "b", "c", "d"],
+      modelIds: ["a", "b", "c", "d", "e"],
       cliIds: new Set(["a"]),
       officialDocIds: new Set(["b"]),
-      thirdPartyIds: new Set(),
-      fallbackIds: new Set(["c"]),
+      thirdPartyIds: new Set(["c"]),
+      freeIds: new Set(["d"]),
     })
     expect(counted).toEqual({
       cli: 1,
       officialDocs: 1,
-      thirdParty: 0,
-      fallback: 1,
+      thirdParty: 1,
+      free: 1,
+      fallback: 0,
       unmatched: 1,
     })
   })

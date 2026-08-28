@@ -1,14 +1,21 @@
 import { writeFileSync } from "fs"
 
 export type CatalogStatus = "healthy" | "degraded" | "broken"
-export type CostCatalogBest = "cli" | "docs" | "thirdParty" | "fallback" | "missing"
+export type CostCatalogBest = "cli" | "docs" | "thirdParty" | "free" | "fallback" | "missing"
 
 export type CostSources = {
   cli: number
   officialDocs: number
   thirdParty: number
+  free: number
   fallback: number
   unmatched: number
+}
+
+export type CatalogReview = {
+  thirdParty: string[]
+  free: string[]
+  unmatched: string[]
 }
 
 export type CatalogManifest = {
@@ -25,6 +32,7 @@ export type CatalogManifest = {
     costCatalogError: string | null
   }
   costSources: CostSources
+  review?: CatalogReview
   status: CatalogStatus
 }
 
@@ -36,6 +44,7 @@ export type BuildManifestInput = {
   reasoningModelCount: number
   modelCatalogOk: boolean
   costSources: CostSources
+  review?: CatalogReview
   generatedAt: string
   costCatalogError?: string | null
 }
@@ -56,13 +65,14 @@ export function bestCostCatalog(sources: CostSources): CostCatalogBest {
   if (sources.cli > 0) return "cli"
   if (sources.officialDocs > 0) return "docs"
   if (sources.thirdParty > 0) return "thirdParty"
+  if (sources.free > 0) return "free"
   if (sources.fallback > 0) return "fallback"
   return "missing"
 }
 
 export function catalogStatus(modelCatalogOk: boolean, sources: CostSources): CatalogStatus {
   if (!modelCatalogOk) return "broken"
-  if (sources.fallback > 0 || sources.unmatched > 0) return "degraded"
+  if (sources.unmatched > 0) return "degraded"
   return "healthy"
 }
 
@@ -86,6 +96,7 @@ export function buildManifest(input: BuildManifestInput): CatalogManifest {
       costCatalogError: input.costCatalogError ?? null,
     },
     costSources: { ...input.costSources },
+    ...(input.review ? { review: input.review } : {}),
     status,
   }
 }
@@ -105,12 +116,15 @@ export function countCostSources(input: {
   cliIds: Set<string>
   officialDocIds: Set<string>
   thirdPartyIds: Set<string>
-  fallbackIds: Set<string>
+  freeIds: Set<string>
+  fallbackIds?: Set<string>
 }): CostSources {
+  const fallbackIds = input.fallbackIds ?? new Set<string>()
   const sources: CostSources = {
     cli: 0,
     officialDocs: 0,
     thirdParty: 0,
+    free: 0,
     fallback: 0,
     unmatched: 0,
   }
@@ -118,7 +132,8 @@ export function countCostSources(input: {
     if (input.cliIds.has(id)) sources.cli++
     else if (input.officialDocIds.has(id)) sources.officialDocs++
     else if (input.thirdPartyIds.has(id)) sources.thirdParty++
-    else if (input.fallbackIds.has(id)) sources.fallback++
+    else if (input.freeIds.has(id)) sources.free++
+    else if (fallbackIds.has(id)) sources.fallback++
     else sources.unmatched++
   }
   return sources

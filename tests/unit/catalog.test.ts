@@ -94,6 +94,19 @@ describe("buildModelEntry", () => {
     expect(entry!.reasoningEfforts).toEqual(["low", "high"])
     expect(entry!.cost).toEqual({ input: 0.5, output: 2 })
   })
+
+  test("does not invent a billed rate for models missing from the CLI cost map", () => {
+    const sn: SnEntry = {
+      id: "google/gemini-3.5-flash",
+      provider: "openrouter",
+      spec: "chatComplete",
+      label: "Gemini",
+      name: "Gemini 3.5 Flash",
+      description: "x",
+    }
+    const entry = buildModelEntry(sn, new Map())
+    expect(entry!.cost).toEqual({ input: 0.5, output: 2 })
+  })
 })
 
 describe("disambiguateModelNames", () => {

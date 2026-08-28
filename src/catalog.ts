@@ -53,19 +53,6 @@ export interface LocalCatalogResult {
   bundleSource: string
 }
 
-export const FALLBACK_COSTS: Record<string, { input: number; output: number; cache_read?: number; cache_write?: number }> = {
-  "deepseek/deepseek-v4-pro": { input: 0.435, output: 0.87, cache_read: 0.003625 },
-  "deepseek/deepseek-v4-flash": { input: 0.14, output: 0.28, cache_read: 0.01 },
-  "zai-org/GLM-5.1": { input: 1.4, output: 4.4, cache_read: 0.26 },
-  "MiniMaxAI/MiniMax-M2.7": { input: 0.3, output: 1.2, cache_read: 0.06 },
-  "Qwen/Qwen3.6-Max-Preview": { input: 1.3, output: 7.8, cache_read: 0.26, cache_write: 1.63 },
-  "Qwen/Qwen3.6-Plus": { input: 0.5, output: 3, cache_read: 0.1 },
-  "Qwen/Qwen3.7-Max": { input: 1.25, output: 3.75, cache_read: 0.25, cache_write: 1.56 },
-  "stepfun/Step-3.5-Flash": { input: 0.1, output: 0.3, cache_read: 0.02 },
-  "google/gemini-3.5-flash": { input: 1.5, output: 9, cache_read: 0.15 },
-  "google/gemini-3.1-flash-lite": { input: 0.25, output: 1.5, cache_read: 0.03 },
-}
-
 export const FALLBACK_LIMITS: Record<string, { context: number; output: number }> = {
   "claude-haiku-4-5-20251001": { context: 200000, output: 8192 },
   "claude-opus-4-6": { context: 200000, output: 32000 },
@@ -485,8 +472,8 @@ export function buildModelEntry(
     if (costEntry.cacheHitCost > 0) cost.cache_read = costEntry.cacheHitCost
     if (costEntry.cacheWrite5mCost > 0) cost.cache_write = costEntry.cacheWrite5mCost
   } else {
-    const fallback = FALLBACK_COSTS[entry.id]
-    cost = fallback ? { ...fallback } : { input: 0.5, output: 2 }
+    // ponytail: sync fills real prices (docs → free $0 → models.dev); this is only the unmatched placeholder
+    cost = { input: 0.5, output: 2 }
   }
 
   const limit = entry.contextWindow
@@ -545,7 +532,7 @@ export function loadCatalogFromBundle(source: string): ModelEntry[] {
   try {
     costMap = buildCostMap(extractCostData(source))
   } catch {
-    // ponytail: CLI cost map is optional; buildModelEntry applies FALLBACK_COSTS / defaults
+    // ponytail: CLI cost map is optional; buildModelEntry uses unmatched placeholder until sync fills prices
   }
 
   const entries: ModelEntry[] = []

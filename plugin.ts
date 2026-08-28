@@ -117,7 +117,7 @@ export default async function commandcodePlugin() {
             degraded = true
             degradedReason = manifest.status === "broken"
               ? "bundled catalog marked broken"
-              : "bundled catalog costs include fallback or unmatched models"
+              : "bundled catalog has models with no listed price"
           }
         } else {
           const cached = readCatalogCache()

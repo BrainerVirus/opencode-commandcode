@@ -181,14 +181,17 @@ test("config hook creates provider block if missing", async () => {
   expect(cc.npm).toBe("commandcode-go-opencode-provider")
 })
 
-test("startup summary uses bundled manifest version and degraded status", async () => {
+test("startup summary uses bundled manifest version and status", async () => {
   const plugin = await pluginFn()
   const config: Record<string, unknown> = { provider: { commandcode: {} } }
   await plugin.config(config)
   const summary = JSON.parse(readFileSync(join(testStateDir, "startup.json"), "utf-8"))
+  const manifest = JSON.parse(readFileSync(join(repoRoot, "manifest.json"), "utf-8")) as {
+    status: string
+  }
   expect(summary.catalogSource).toBe("bundled")
   expect(summary.commandCodeVersion).toBe("1.38.1")
-  expect(summary.degraded).toBe(true)
+  expect(summary.degraded).toBe(manifest.status === "degraded" || manifest.status === "broken")
   expect(summary.modelCount).toBeGreaterThan(20)
 })
 

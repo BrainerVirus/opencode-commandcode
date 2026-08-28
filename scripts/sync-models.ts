@@ -4,7 +4,6 @@ import { homedir, tmpdir } from "os"
 import { execSync } from "child_process"
 import {
   NPM_PACKAGE,
-  FALLBACK_COSTS,
   extractCostData,
   buildCostMap,
   generateOpencodeModels,
@@ -13,6 +12,12 @@ import {
   type ModelEntry,
 } from "../src/catalog.js"
 import { applyDocCosts, fetchOfficialModelsMarkdown, parseModelsTable } from "../src/costs-docs.js"
+import {
+  applyFreeCosts,
+  applyModelsDevCosts,
+  fetchModelsDevJson,
+  parseModelsDev,
+} from "../src/costs-models-dev.js"
 import {
   buildManifest,
   commandCodeTarballUrl,
@@ -171,7 +176,23 @@ async function main() {
     const filled = applyDocCosts(entries, parseModelsTable(docsMd), cliIds, docIds)
     console.log(`  Applied official-docs costs to ${filled} models (${cliIds.size} kept CLI costs)`)
   } else {
-    console.log("  Official docs returned no parseable cost table; keeping CLI/fallback costs")
+    console.log("  Official docs returned no parseable cost table; keeping CLI costs")
+  }
+
+  const priced = new Set([...cliIds, ...docIds])
+  const freeIds = new Set<string>()
+  const freeFilled = applyFreeCosts(entries, priced, freeIds)
+  console.log(`  Applied free SKU $0 to ${freeFilled} models`)
+
+  const thirdPartyIds = new Set<string>()
+  const skipAfterFree = new Set([...priced, ...freeIds])
+  try {
+    const modelsDevJson = await fetchModelsDevJson()
+    const filled = applyModelsDevCosts(entries, parseModelsDev(modelsDevJson), skipAfterFree, thirdPartyIds)
+    console.log(`  Applied models.dev costs to ${filled} models`)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    console.log(`  models.dev fill skipped: ${message}`)
   }
 
   console.log(`\nWriting ${MODELS_JSON} with ${entries.length} models from ${sourceLabel}...`)
@@ -179,12 +200,15 @@ async function main() {
   writeFileSync(VERSION_PATH, `${version}\n`, "utf-8")
 
   const pluginVersion = (JSON.parse(readFileSync(PACKAGE_JSON, "utf-8")) as { version: string }).version
+  const unmatchedIds = entries
+    .filter((e) => !cliIds.has(e.id) && !docIds.has(e.id) && !freeIds.has(e.id) && !thirdPartyIds.has(e.id))
+    .map((e) => e.id)
   const costSources = countCostSources({
     modelIds: entries.map((e) => e.id),
     cliIds,
     officialDocIds: docIds,
-    thirdPartyIds: new Set(),
-    fallbackIds: new Set(Object.keys(FALLBACK_COSTS)),
+    thirdPartyIds,
+    freeIds,
   })
   writeManifest(
     MANIFEST_PATH,
@@ -196,6 +220,11 @@ async function main() {
       reasoningModelCount: entries.filter((e) => e.reasoning).length,
       modelCatalogOk: true,
       costSources,
+      review: {
+        thirdParty: [...thirdPartyIds],
+        free: [...freeIds],
+        unmatched: unmatchedIds,
+      },
       generatedAt: new Date().toISOString(),
     }),
   )
