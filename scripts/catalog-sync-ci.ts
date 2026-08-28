@@ -1,20 +1,19 @@
 #!/usr/bin/env bun
-import { existsSync, readFileSync, writeFileSync } from "fs"
+import { existsSync, readFileSync } from "fs"
 import { join } from "path"
 import { execSync } from "child_process"
-import { catalogBreakResolvedComment, catalogBreakTitle, renderCatalogBreakBody } from "../src/catalog-break.js"
+import { catalogBreakTitle, renderCatalogBreakBody } from "../src/catalog-break.js"
 import {
-  bumpPackageVersionField,
   lastSuccessfulModelCount,
   meetsModelCountFloor,
   type CatalogManifest,
 } from "../src/manifest.js"
 import { decideCatalogSync } from "../src/publish-policy.js"
 import { npmLatestVersion, npmPackageVersions } from "./npm-registry.js"
-import { publishIfNeeded } from "./publish-if-needed.js"
 
 const ROOT = join(import.meta.dir, "..")
-const CATALOG_FILES = ["models.json", "_version.txt", "manifest.json", "package.json"]
+const CATALOG_FILES = ["models.json", "_version.txt", "manifest.json"]
+const CATALOG_BRANCH = "chore/catalog-sync"
 
 function readJson<T>(path: string): T | null {
   if (!existsSync(path)) return null
@@ -66,39 +65,34 @@ function openOrUpdateCatalogBreak(input: {
   })
 }
 
-function closeCatalogBreakIssues(tag: string): void {
-  let existing = "[]"
-  try {
-    existing = execSync(`gh issue list --label catalog-break --state open --json number`, {
-      cwd: ROOT,
-      encoding: "utf-8",
-    })
-  } catch {
+function openCatalogPr(commandCodeVersion: string): void {
+  const status = git(`status --porcelain -- ${CATALOG_FILES.join(" ")}`)
+  if (!status) {
+    console.log("catalog files unchanged")
     return
   }
-  const issues = JSON.parse(existing) as Array<{ number: number }>
-  const commit = git("rev-parse --short HEAD")
-  const comment = catalogBreakResolvedComment({ commit, tag })
-  for (const issue of issues) {
-    execSync(`gh issue close ${issue.number} --comment ${JSON.stringify(comment)}`, {
-      cwd: ROOT,
-      stdio: "inherit",
-    })
-  }
-}
-
-function commitCatalogIfChanged(commandCodeVersion: string): boolean {
-  const status = git(`status --porcelain -- ${CATALOG_FILES.join(" ")}`)
-  if (!status) return false
   git('config user.name "github-actions[bot]"')
   git('config user.email "41898282+github-actions[bot]@users.noreply.github.com"')
+  execSync(`git checkout -B ${CATALOG_BRANCH}`, { cwd: ROOT, stdio: "inherit" })
   execSync(`git add ${CATALOG_FILES.join(" ")}`, { cwd: ROOT, stdio: "inherit" })
   execSync(
-    `git commit -m ${JSON.stringify(`chore(catalog): sync command-code@${commandCodeVersion}`)}`,
+    `git commit -m ${JSON.stringify(`fix(catalog): sync command-code@${commandCodeVersion}`)}`,
     { cwd: ROOT, stdio: "inherit" },
   )
-  execSync("git push", { cwd: ROOT, stdio: "inherit" })
-  return true
+  execSync(`git push -u origin ${CATALOG_BRANCH} --force`, { cwd: ROOT, stdio: "inherit" })
+  const existing = execSync(
+    `gh pr list --head ${CATALOG_BRANCH} --base main --json number`,
+    { cwd: ROOT, encoding: "utf-8" },
+  )
+  const prs = JSON.parse(existing) as Array<{ number: number }>
+  if (prs.length > 0) {
+    console.log(`updated catalog PR #${prs[0].number}`)
+    return
+  }
+  execSync(
+    `gh pr create --base main --head ${CATALOG_BRANCH} --title ${JSON.stringify(`fix(catalog): sync command-code@${commandCodeVersion}`)} --body ${JSON.stringify(`Automated catalog refresh from command-code@${commandCodeVersion}. Merge after CI is green; semantic-release publishes the patch.`)}`,
+    { cwd: ROOT, stdio: "inherit" },
+  )
 }
 
 async function main(): Promise<void> {
@@ -117,71 +111,53 @@ async function main(): Promise<void> {
 
   console.log(JSON.stringify({ latestCc, pluginVersion: pkg.version, decision }))
 
-  if (decision.exit) {
-    console.log("nothing to do")
+  if (!decision.extract) {
+    console.log("no catalog extract (release job owns unpublished plugin versions)")
     return
   }
 
-  if (decision.extract) {
-    const prior = readJson<CatalogManifest>(join(ROOT, "manifest.json"))
-    const beforeModels = existsSync(join(ROOT, "models.json"))
-      ? readFileSync(join(ROOT, "models.json"), "utf-8")
-      : ""
-    const beforeVersion = bundledCommandCodeVersion()
+  const prior = readJson<CatalogManifest>(join(ROOT, "manifest.json"))
+  const beforeModels = existsSync(join(ROOT, "models.json"))
+    ? readFileSync(join(ROOT, "models.json"), "utf-8")
+    : ""
+  const beforeVersion = bundledCommandCodeVersion()
 
+  try {
+    execSync("bun run scripts/sync-models.ts -- --remote", { cwd: ROOT, stdio: "inherit" })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
     try {
-      execSync("bun run scripts/sync-models.ts -- --remote", { cwd: ROOT, stdio: "inherit" })
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      try {
-        openOrUpdateCatalogBreak({ commandCodeVersion: latestCc, error: message })
-      } catch (issueErr) {
-        console.error("failed to open catalog-break issue", issueErr)
-      }
-      process.exitCode = 1
-      return
+      openOrUpdateCatalogBreak({ commandCodeVersion: latestCc, error: message })
+    } catch (issueErr) {
+      console.error("failed to open catalog-break issue", issueErr)
     }
-
-    const afterModels = readFileSync(join(ROOT, "models.json"), "utf-8")
-    const entries = JSON.parse(afterModels) as unknown[]
-    const lastCount = lastSuccessfulModelCount(prior)
-    if (!meetsModelCountFloor(entries.length, lastCount)) {
-      const message = `model count ${entries.length} below floor (lastSuccessful=${lastCount})`
-      try {
-        openOrUpdateCatalogBreak({ commandCodeVersion: latestCc, error: message })
-      } catch (issueErr) {
-        console.error("failed to open catalog-break issue", issueErr)
-      }
-      execSync(`git checkout -- models.json _version.txt manifest.json`, { cwd: ROOT, stdio: "inherit" })
-      process.exitCode = 1
-      return
-    }
-
-    const changed = afterModels !== beforeModels || bundledCommandCodeVersion() !== beforeVersion
-    if (changed) {
-      const bumped = bumpPackageVersionField(readFileSync(pkgPath, "utf-8"))
-      writeFileSync(pkgPath, bumped.json)
-      const manifestPath = join(ROOT, "manifest.json")
-      const manifest = JSON.parse(readFileSync(manifestPath, "utf-8")) as CatalogManifest
-      manifest.pluginVersion = bumped.version
-      writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
-    }
-
-    if (process.env.CI === "true") {
-      commitCatalogIfChanged(bundledCommandCodeVersion() ?? latestCc)
-    }
+    process.exitCode = 1
+    return
   }
 
-  const publishedResult = await publishIfNeeded({ tagAndRelease: true })
-  if (publishedResult === "publish") {
-    const version = (JSON.parse(readFileSync(pkgPath, "utf-8")) as { version: string }).version
+  const afterModels = readFileSync(join(ROOT, "models.json"), "utf-8")
+  const entries = JSON.parse(afterModels) as unknown[]
+  const lastCount = lastSuccessfulModelCount(prior)
+  if (!meetsModelCountFloor(entries.length, lastCount)) {
+    const message = `model count ${entries.length} below floor (lastSuccessful=${lastCount})`
     try {
-      closeCatalogBreakIssues(`v${version}`)
-    } catch (err) {
-      console.warn("could not close catalog-break issues", err)
+      openOrUpdateCatalogBreak({ commandCodeVersion: latestCc, error: message })
+    } catch (issueErr) {
+      console.error("failed to open catalog-break issue", issueErr)
     }
-  } else if (publishedResult === "skip-no-token") {
-    console.log("NPM_TOKEN/NODE_AUTH_TOKEN unset — skipped npm publish")
+    execSync(`git checkout -- ${CATALOG_FILES.join(" ")}`, { cwd: ROOT, stdio: "inherit" })
+    process.exitCode = 1
+    return
+  }
+
+  const changed = afterModels !== beforeModels || bundledCommandCodeVersion() !== beforeVersion
+  if (!changed) {
+    console.log("extract produced no catalog changes")
+    return
+  }
+
+  if (process.env.CI === "true") {
+    openCatalogPr(bundledCommandCodeVersion() ?? latestCc)
   }
 }
 

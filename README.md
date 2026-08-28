@@ -1,20 +1,18 @@
 # @brainervirus/commandcode-go-opencode-provider
 
 [![npm version](https://img.shields.io/npm/v/@brainervirus/commandcode-go-opencode-provider)](https://www.npmjs.com/package/@brainervirus/commandcode-go-opencode-provider)
-[![CI](https://img.shields.io/github/actions/workflow/status/BrainerVirus/opencode-commandcode-provider/test.yml?branch=main&label=CI)](https://github.com/BrainerVirus/opencode-commandcode-provider/actions)
+[![CI](https://img.shields.io/github/actions/workflow/status/BrainerVirus/opencode-commandcode-provider/ci.yml?branch=main&label=CI)](https://github.com/BrainerVirus/opencode-commandcode-provider/actions)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 [Command Code](https://commandcode.ai) API provider for [opencode](https://opencode.ai). Use Claude, GPT, Gemini, DeepSeek, Qwen, Kimi, GLM, MiniMax, Step, and other models through a single API key.
 
-This fork keeps a **bundled** model catalog current via CI. You do **not** need a local `command-code` CLI. Catalog patches publish automatically when Command Code ships a new npm version.
+This package keeps a **bundled** model catalog current via CI. You do **not** need a local `command-code` CLI. Catalog patches publish automatically after a green PR merges to `main`.
 
 ## Credits
 
-This plugin is based on **[opencode-commandcode-provider](https://github.com/brent-weatherall/opencode-commandcode-provider)** by **[Brent Weatherall](https://github.com/brent-weatherall)**. Thank you for the original OpenCode plugin, catalog extraction, and Command Code wiring.
+This plugin is based on **[opencode-commandcode-provider](https://github.com/brent-weatherall/opencode-commandcode-provider)** by **[Brent Weatherall](https://github.com/brent-weatherall)**. Thank you for the original OpenCode plugin, catalog extraction, and Command Code wiring. The license remains MIT; copyright stays with Brent Weatherall.
 
-This public fork started from [FanFan4204/opencode-commandcode-provider](https://github.com/FanFan4204/opencode-commandcode-provider) and continues that work with a CI-kept catalog and npm releases. The license remains MIT; copyright stays with Brent Weatherall.
-
-### Key improvements over upstream
+### What this package adds
 
 - Bundled `models.json` is the default runtime catalog (no local CLI scrape).
 - CLI cost extraction can fail (as on `command-code@1.38.x`) without dropping models.
@@ -83,9 +81,9 @@ bun test tests/unit/
 bun run sync -- --remote  # refresh models.json + manifest.json from command-code@latest
 ```
 
-CI (`.github/workflows/catalog-sync.yml`) runs that every 6 hours, commits catalog files to `main`, publishes an npm patch when `NPMJS` is set, and creates a GitHub Release **after** publish. Model extraction failures open a `catalog-break` issue and do not publish.
+CI (`.github/workflows/catalog-sync.yml`) opens a PR every 6 hours when Command Code ships a new catalog. Merge after **check (test)**, **check (typecheck)**, and **check (pack)** are green. `.github/workflows/release.yml` then runs **semantic-release** (npm publish + GitHub Release + tag). Do not push to `main`.
 
-The GitHub Actions secret name is `NPMJS` (same as workit). It is mapped to both `NPM_TOKEN` and `NODE_AUTH_TOKEN`. Use an npm **Automation** token (bypasses 2FA). A login token from `~/.npmrc` fails CI with `EOTP`.
+The GitHub Actions secret name is `NPMJS` (same as workit). It is mapped to both `NPM_TOKEN` and `NODE_AUTH_TOKEN`. Use an npm **Automation** token (bypasses 2FA). A login token from `~/.npmrc` fails CI with `EOTP`. Catalog PRs get a real CI run when `RELEASE_SYNC_TOKEN` (or `CATALOG_PUSH_TOKEN`) is a PAT; `GITHUB_TOKEN` can open the PR but GitHub will not start workflows from that event.
 
 ## License
 

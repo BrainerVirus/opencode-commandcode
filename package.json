@@ -8,8 +8,13 @@
   },
   "main": "index.ts",
   "devDependencies": {
+    "@semantic-release/commit-analyzer": "13.0.1",
+    "@semantic-release/github": "12.0.9",
+    "@semantic-release/npm": "13.1.5",
+    "@semantic-release/release-notes-generator": "14.1.1",
     "@types/node": "^25.9.1",
     "ai": "6.0.191",
+    "semantic-release": "25.0.9",
     "typescript": "^6.0.3"
   },
   "exports": {
@@ -24,7 +29,9 @@
     "url": "https://github.com/BrainerVirus/opencode-commandcode-provider/issues"
   },
   "description": "Command Code API provider for opencode — use Claude, GPT, Gemini, DeepSeek, Qwen, Kimi, GLM, MiniMax, and Step models via Command Code",
-  "engines": { "bun": ">=1.0.0" },
+  "engines": {
+    "bun": ">=1.0.0"
+  },
   "files": ["index.ts", "plugin.ts", "models.json", "manifest.json", "_version.txt", "README.md", "CHANGELOG.md", "src/"],
   "homepage": "https://github.com/BrainerVirus/opencode-commandcode-provider#readme",
   "keywords": [
@@ -52,11 +59,11 @@
     "test:integration": "bun test tests/integration/",
     "test:all": "bun test",
     "typecheck": "tsc --noEmit",
+    "verify:release-candidate": "bun run scripts/verify-release-candidate.ts",
     "generate-readme": "bun run scripts/generate-readme.ts",
     "sync": "bun run scripts/sync-models.ts",
     "sync:global": "bun run scripts/sync-models.ts --update-global",
-    "catalog:ci": "bun run scripts/catalog-sync-ci.ts",
-    "publish:if-needed": "bun run scripts/publish-if-needed.ts"
+    "catalog:ci": "bun run scripts/catalog-sync-ci.ts"
   },
   "type": "module",
   "types": "index.ts",
