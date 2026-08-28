@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- semantic-release now cuts Keep a Changelog `[Unreleased]` into `## [version]` on publish and includes `CHANGELOG.md` in the post-release sync PR.
+
+### Fixed
+
+- Catalog GitHub release notes table no longer renders a blank header row above Plugin.
+- Credits sentence no longer mentions Command Code wiring or restates MIT copyright.
+
+## [0.6.0] - 2026-08-28
+
+### Changed
+
+- Renamed the published package and GitHub repository to `@brainervirus/opencode-commandcode`.
+
+## [0.5.1] - 2026-08-28
+
+### Fixed
+
+- Price Command Code free SKUs at `$0` before models.dev, and fill remaining paid gaps from models.dev.
+
+## [0.5.0] - 2026-08-28
+
+### Added
+
 - GitHub flow: PR-gated `main`, CI matrix (`check (test|typecheck|pack)`), semantic-release on merge, catalog updates as PRs.
 - Release notes open with a catalog summary table and collapsed lists of fallback / unpriced models.
 - `manifest.json` describing the bundled catalog (status, cost sources, command-code version).
