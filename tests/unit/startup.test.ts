@@ -3,6 +3,7 @@ import { mkdtempSync, readFileSync, rmSync } from "fs"
 import { tmpdir } from "os"
 import { join } from "path"
 import {
+  pluginStateDir,
   readCatalogCache,
   writeCatalogCache,
   writeStartupSummary,
@@ -20,6 +21,21 @@ const sample: ModelEntry[] = [
     limit: { context: 200000, output: 16000 },
   },
 ]
+
+describe("pluginStateDir", () => {
+  test("honors COMMANDCODE_PROVIDER_STATE_DIR when set", () => {
+    const dir = mkdtempSync(join(tmpdir(), "cc-state-"))
+    const prev = process.env.COMMANDCODE_PROVIDER_STATE_DIR
+    process.env.COMMANDCODE_PROVIDER_STATE_DIR = dir
+    try {
+      expect(pluginStateDir()).toBe(dir)
+    } finally {
+      if (prev === undefined) delete process.env.COMMANDCODE_PROVIDER_STATE_DIR
+      else process.env.COMMANDCODE_PROVIDER_STATE_DIR = prev
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})
 
 describe("catalog cache", () => {
   test("round-trips models and returns null for missing file", () => {

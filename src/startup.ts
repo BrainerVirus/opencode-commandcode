@@ -15,6 +15,8 @@ export type StartupSummary = {
 }
 
 export function pluginStateDir(): string {
+  const override = process.env.COMMANDCODE_PROVIDER_STATE_DIR?.trim()
+  if (override) return override
   return join(homedir(), ".local/state/opencode/commandcode-provider")
 }
 

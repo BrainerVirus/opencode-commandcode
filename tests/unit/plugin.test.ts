@@ -1,4 +1,9 @@
-import { expect, test, beforeAll } from "bun:test"
+import { expect, test, beforeAll, afterAll } from "bun:test"
+import { existsSync, mkdtempSync, readFileSync, renameSync, rmSync } from "fs"
+import { tmpdir } from "os"
+import { dirname, join } from "path"
+import { fileURLToPath } from "url"
+import { writeCatalogCache, type ModelEntry } from "../../src/startup.ts"
 
 type PluginResult = {
   config: (config: Record<string, unknown>) => Promise<void>
@@ -16,10 +21,46 @@ type PluginResult = {
 type PluginModule = { default: () => Promise<PluginResult> }
 
 let pluginFn: PluginModule["default"]
+let testStateDir: string
+let prevStateDir: string | undefined
+
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..")
+const modelsPath = join(repoRoot, "models.json")
+const modelsBackup = join(repoRoot, "models.json.test-bak")
+
+const cacheSample: ModelEntry[] = [
+  {
+    id: "claude-sonnet-4-6",
+    name: "Claude Sonnet 4.6",
+    tier: "premium",
+    reasoning: true,
+    tool_call: true,
+    cost: { input: 3, output: 15 },
+    limit: { context: 200000, output: 16000 },
+  },
+]
+
+function hideBundledCatalog(): void {
+  if (existsSync(modelsPath)) renameSync(modelsPath, modelsBackup)
+}
+
+function restoreBundledCatalog(): void {
+  if (existsSync(modelsBackup)) renameSync(modelsBackup, modelsPath)
+}
 
 beforeAll(async () => {
+  testStateDir = mkdtempSync(join(tmpdir(), "cc-plugin-state-"))
+  prevStateDir = process.env.COMMANDCODE_PROVIDER_STATE_DIR
+  process.env.COMMANDCODE_PROVIDER_STATE_DIR = testStateDir
   const mod = await import("../../plugin.ts")
   pluginFn = mod.default
+})
+
+afterAll(() => {
+  if (prevStateDir === undefined) delete process.env.COMMANDCODE_PROVIDER_STATE_DIR
+  else process.env.COMMANDCODE_PROVIDER_STATE_DIR = prevStateDir
+  rmSync(testStateDir, { recursive: true, force: true })
+  restoreBundledCatalog()
 })
 
 test("plugin returns correct provider name", async () => {
@@ -185,4 +226,58 @@ test("config hook attaches reasoning effort variants when available", async () =
   const keys = Object.keys(variants)
   expect(keys.length).toBeGreaterThan(0)
   expect(variants[keys[0]].reasoningEffort).toBe(keys[0])
+})
+
+test("CA-04: registers npm/env with empty models when bundled and cache miss", async () => {
+  const emptyDir = mkdtempSync(join(tmpdir(), "cc-ca04-"))
+  const prev = process.env.COMMANDCODE_PROVIDER_STATE_DIR
+  process.env.COMMANDCODE_PROVIDER_STATE_DIR = emptyDir
+  hideBundledCatalog()
+  try {
+    const plugin = await pluginFn()
+    const config: Record<string, unknown> = { provider: { commandcode: {} } }
+    await plugin.config(config)
+
+    const cc = (config.provider as Record<string, Record<string, unknown>>).commandcode
+    expect(cc.npm).toBe("commandcode-go-opencode-provider")
+    expect(cc.name).toBe("Command Code")
+    expect(cc.env).toEqual(["COMMANDCODE_API_KEY"])
+    expect(cc.models).toEqual({})
+
+    const summary = JSON.parse(readFileSync(join(emptyDir, "startup.json"), "utf-8"))
+    expect(summary.degraded).toBe(true)
+    expect(summary.modelCount).toBe(0)
+  } finally {
+    restoreBundledCatalog()
+    if (prev === undefined) delete process.env.COMMANDCODE_PROVIDER_STATE_DIR
+    else process.env.COMMANDCODE_PROVIDER_STATE_DIR = prev
+    rmSync(emptyDir, { recursive: true, force: true })
+  }
+})
+
+test("CA-05: falls back to last-good cache when bundled catalog unreadable", async () => {
+  const cacheDir = mkdtempSync(join(tmpdir(), "cc-ca05-"))
+  writeCatalogCache(cacheDir, cacheSample)
+  const prev = process.env.COMMANDCODE_PROVIDER_STATE_DIR
+  process.env.COMMANDCODE_PROVIDER_STATE_DIR = cacheDir
+  hideBundledCatalog()
+  try {
+    const plugin = await pluginFn()
+    const config: Record<string, unknown> = { provider: { commandcode: {} } }
+    await plugin.config(config)
+
+    const cc = (config.provider as Record<string, Record<string, unknown>>).commandcode
+    expect(Object.keys(cc.models as object).length).toBeGreaterThan(0)
+
+    const summary = JSON.parse(readFileSync(join(cacheDir, "startup.json"), "utf-8"))
+    expect(summary.catalogSource).toBe("cache")
+    expect(summary.degraded).toBe(true)
+    expect(summary.degradedReason).toContain("last-good cache")
+    expect(summary.modelCount).toBe(1)
+  } finally {
+    restoreBundledCatalog()
+    if (prev === undefined) delete process.env.COMMANDCODE_PROVIDER_STATE_DIR
+    else process.env.COMMANDCODE_PROVIDER_STATE_DIR = prev
+    rmSync(cacheDir, { recursive: true, force: true })
+  }
 })
