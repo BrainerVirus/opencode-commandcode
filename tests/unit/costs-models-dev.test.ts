@@ -4,8 +4,10 @@ import { join } from "path";
 import {
   applyFreeCosts,
   applyModelsDevCosts,
+  applyModelsDevModalities,
   isFreeSku,
   parseModelsDev,
+  TEXT_ONLY_MODALITIES,
 } from "../../src/costs-models-dev.ts";
 import type { ModelEntry } from "../../src/catalog.ts";
 
@@ -72,6 +74,48 @@ describe("parseModelsDev + applyModelsDevCosts", () => {
     expect(applyModelsDevCosts(models, rows, new Set(), filled)).toBe(1);
     expect(models[0].cost).toEqual({ input: 0.5, output: 3, cache_read: 0.1 });
     expect([...filled]).toEqual(["Qwen/Qwen3.6-Plus"]);
+  });
+});
+
+describe("applyModelsDevModalities", () => {
+  const rows = parseModelsDev(
+    readFileSync(join(import.meta.dir, "../fixtures/models-dev/api.subset.json"), "utf-8"),
+  );
+
+  test("keeps CLI modalities on unmatched SKUs and only enriches extras from models.dev", () => {
+    const models = [
+      model({
+        id: "google/gemini-3.5-flash",
+        name: "Gemini 3.5 Flash",
+        attachment: true,
+        modalities: { input: ["text", "image"], output: ["text"] },
+      }),
+      model({
+        id: "unknown/cli-vision-only",
+        name: "CLI Vision Only",
+        attachment: true,
+        modalities: { input: ["text", "image"], output: ["text"] },
+      }),
+      model({
+        id: "tencent/hy4-preview",
+        name: "Tencent Hy4 Preview",
+        attachment: false,
+        modalities: { input: ["text"], output: ["text"] },
+      }),
+      model({ id: "no-cli-no-dev", name: "Gap" }),
+    ];
+    const n = applyModelsDevModalities(models, rows);
+    expect(n).toBe(1);
+    expect(models[0].modalities).toEqual({
+      input: ["text", "image", "video", "audio", "pdf"],
+      output: ["text"],
+    });
+    expect(models[1].attachment).toBe(true);
+    expect(models[1].modalities).toEqual({ input: ["text", "image"], output: ["text"] });
+    expect(models[2].attachment).toBe(false);
+    expect(models[2].modalities).toEqual({ ...TEXT_ONLY_MODALITIES });
+    expect(models[3].attachment).toBe(false);
+    expect(models[3].modalities).toEqual({ ...TEXT_ONLY_MODALITIES });
   });
 });
 

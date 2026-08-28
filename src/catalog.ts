@@ -15,6 +15,8 @@ export interface ModelEntry {
   tool_call: boolean;
   cost: { input: number; output: number; cache_read?: number; cache_write?: number };
   limit: { context: number; output: number };
+  attachment?: boolean;
+  modalities?: { input: string[]; output: string[] };
 }
 
 export interface CostEntry {
@@ -38,6 +40,8 @@ export interface SnEntry {
   reasoning?: boolean;
   reasoningEfforts?: string[];
   contextWindow?: number;
+  inputModalities?: string[];
+  maxOutputTokens?: number;
 }
 
 export interface ResolvedCommandCodePackage {
@@ -484,11 +488,21 @@ export function buildModelEntry(
     cost = { input: 0.5, output: 2 };
   }
 
-  const limit = entry.contextWindow
-    ? { context: entry.contextWindow, output: FALLBACK_LIMITS[entry.id]?.output ?? 65536 }
-    : (FALLBACK_LIMITS[entry.id] ?? { context: 200000, output: 65536 });
+  const fallback = FALLBACK_LIMITS[entry.id];
+  const limit = {
+    context: entry.contextWindow ?? fallback?.context ?? 200000,
+    output: entry.maxOutputTokens ?? fallback?.output ?? 65536,
+  };
 
   const efforts = entry.reasoningEfforts?.length ? [...entry.reasoningEfforts] : undefined;
+  const input = entry.inputModalities?.filter((x) => typeof x === "string") ?? [];
+  const fromCli =
+    input.length > 0
+      ? {
+          attachment: input.includes("image"),
+          modalities: { input: [...input], output: ["text"] },
+        }
+      : {};
 
   return {
     id: entry.id,
@@ -499,6 +513,7 @@ export function buildModelEntry(
     tool_call: true,
     cost,
     limit,
+    ...fromCli,
   };
 }
 
@@ -740,6 +755,8 @@ export function generateOpencodeModels(entries: ModelEntry[]): Record<string, un
       name: entry.name,
       reasoning: entry.reasoning,
       tool_call: entry.tool_call,
+      attachment: entry.attachment ?? false,
+      modalities: entry.modalities ?? { input: ["text"], output: ["text"] },
       cost: costObj,
       limit: entry.limit,
     };

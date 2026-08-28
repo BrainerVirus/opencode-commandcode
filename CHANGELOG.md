@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - npm publishes only when plugin or catalog files change since the last tag — CI, tests, and scripts-only merges skip a release.
 
+### Added
+
+- Catalog models include vision vs text-only from the Command Code CLI `inputModalities` field on every SKU. models.dev only adds extra inputs (video/audio/pdf) on matches.
+
 ## [0.6.1] - 2026-08-28
 
 ### Added

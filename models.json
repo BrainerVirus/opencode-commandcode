@@ -21,6 +21,16 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -38,6 +48,17 @@
     "limit": {
       "context": 200000,
       "output": 8192
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "pdf"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -62,6 +83,17 @@
     "limit": {
       "context": 1000000,
       "output": 32000
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "pdf"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -86,6 +118,16 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -110,6 +152,16 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -134,6 +186,17 @@
     "limit": {
       "context": 1000000,
       "output": 16000
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "pdf"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -158,6 +221,16 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -180,6 +253,16 @@
     "limit": {
       "context": 400000,
       "output": 128000
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -202,6 +285,17 @@
     "limit": {
       "context": 400000,
       "output": 128000
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "pdf"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -223,6 +317,16 @@
     "limit": {
       "context": 400000,
       "output": 128000
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -245,6 +349,16 @@
     "limit": {
       "context": 400000,
       "output": 128000
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -265,6 +379,15 @@
     "limit": {
       "context": 1000000,
       "output": 384000
+    },
+    "attachment": false,
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -285,6 +408,16 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -305,6 +438,15 @@
     "limit": {
       "context": 1000000,
       "output": 384000
+    },
+    "attachment": false,
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -325,6 +467,16 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -346,6 +498,19 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video",
+        "audio",
+        "pdf"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -367,6 +532,19 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video",
+        "audio",
+        "pdf"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -388,6 +566,19 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video",
+        "audio",
+        "pdf"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -409,6 +600,19 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video",
+        "audio",
+        "pdf"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -431,6 +635,19 @@
     "limit": {
       "context": 1048576,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video",
+        "audio",
+        "pdf"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -447,6 +664,15 @@
     "limit": {
       "context": 200000,
       "output": 131072
+    },
+    "attachment": false,
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -463,6 +689,15 @@
     "limit": {
       "context": 200000,
       "output": 131072
+    },
+    "attachment": false,
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -483,6 +718,15 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    },
+    "attachment": false,
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -499,6 +743,16 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -520,6 +774,15 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    },
+    "attachment": false,
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -540,7 +803,18 @@
     },
     "limit": {
       "context": 1048576,
-      "output": 65536
+      "output": 131072
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -565,6 +839,16 @@
     "limit": {
       "context": 1050000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -589,6 +873,16 @@
     "limit": {
       "context": 1050000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -613,6 +907,16 @@
     "limit": {
       "context": 1050000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -634,6 +938,16 @@
     "limit": {
       "context": 500000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -656,6 +970,16 @@
     "limit": {
       "context": 500000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -672,6 +996,16 @@
     "limit": {
       "context": 256000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -688,6 +1022,16 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -704,6 +1048,16 @@
     "limit": {
       "context": 256000,
       "output": 131072
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -720,6 +1074,17 @@
     "limit": {
       "context": 256000,
       "output": 131072
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -736,6 +1101,17 @@
     "limit": {
       "context": 256000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -752,6 +1128,16 @@
     "limit": {
       "context": 262000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -768,6 +1154,17 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -783,7 +1180,16 @@
     },
     "limit": {
       "context": 256000,
-      "output": 65536
+      "output": 32768
+    },
+    "attachment": false,
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -798,7 +1204,16 @@
     },
     "limit": {
       "context": 256000,
-      "output": 65536
+      "output": 32768
+    },
+    "attachment": false,
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -815,6 +1230,18 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "audio",
+        "video"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -831,6 +1258,15 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    },
+    "attachment": false,
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -847,6 +1283,15 @@
     "limit": {
       "context": 200000,
       "output": 131072
+    },
+    "attachment": false,
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -863,6 +1308,15 @@
     "limit": {
       "context": 1000000,
       "output": 131072
+    },
+    "attachment": false,
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -878,6 +1332,15 @@
     "limit": {
       "context": 197000,
       "output": 65536
+    },
+    "attachment": false,
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -894,6 +1357,17 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -909,6 +1383,17 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -924,6 +1409,16 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -940,6 +1435,19 @@
     "limit": {
       "context": 1048576,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video",
+        "pdf",
+        "audio"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -956,6 +1464,19 @@
     "limit": {
       "context": 1048576,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video",
+        "pdf",
+        "audio"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -972,6 +1493,19 @@
     "limit": {
       "context": 1048576,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video",
+        "pdf",
+        "audio"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -988,6 +1522,15 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    },
+    "attachment": false,
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -1005,6 +1548,15 @@
     "limit": {
       "context": 1000000,
       "output": 131072
+    },
+    "attachment": false,
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -1021,6 +1573,17 @@
     "limit": {
       "context": 1000000,
       "output": 131072
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -1038,6 +1601,17 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -1055,6 +1629,15 @@
     "limit": {
       "context": 1000000,
       "output": 131072
+    },
+    "attachment": false,
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -1072,6 +1655,17 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -1092,7 +1686,17 @@
     },
     "limit": {
       "context": 262144,
-      "output": 65536
+      "output": 32768
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -1114,6 +1718,17 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -1136,6 +1751,17 @@
     "limit": {
       "context": 1000000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -1152,6 +1778,15 @@
     "limit": {
       "context": 1000000,
       "output": 131072
+    },
+    "attachment": false,
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -1168,6 +1803,17 @@
     "limit": {
       "context": 256000,
       "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -1184,6 +1830,15 @@
     "limit": {
       "context": 262144,
       "output": 65536
+    },
+    "attachment": false,
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -1199,6 +1854,15 @@
     "limit": {
       "context": 262144,
       "output": 65536
+    },
+    "attachment": false,
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
     }
   },
   {
@@ -1220,6 +1884,15 @@
     "limit": {
       "context": 1048576,
       "output": 65536
+    },
+    "attachment": false,
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
     }
   }
 ]

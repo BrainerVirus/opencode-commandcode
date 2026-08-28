@@ -19,6 +19,7 @@ This package is based on **[FanFan4204/opencode-commandcode-provider](https://gi
 - Bundled `models.json` is the default runtime catalog (no local CLI scrape).
 - CLI cost extraction can fail (as on `command-code@1.38.x`) without dropping models.
 - Official docs fill missing costs; remaining paid gaps use [models.dev](https://models.dev) as a reference. Command Code free SKUs stay `$0`.
+- Vision vs text-only comes from the Command Code CLI catalog (`inputModalities` on every SKU). [models.dev](https://models.dev) only adds extra inputs (video/audio/pdf) when it matches.
 - Reasoning effort **variants** on models that declare `reasoningEfforts`.
 - Quiet OpenCode startup (diagnostics go to `startup.json`, not stdout).
 

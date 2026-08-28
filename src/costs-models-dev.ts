@@ -2,17 +2,22 @@ import type { ModelEntry } from "./catalog.js";
 
 export const MODELS_DEV_URL = "https://models.dev/api.json";
 export const FREE_COST = { input: 0, output: 0 } as const;
+export const TEXT_ONLY_MODALITIES = { input: ["text"], output: ["text"] } as const;
 
 export type ModelsDevRow = {
   id: string;
   name: string;
   cost: { input: number; output: number; cache_read?: number; cache_write?: number };
+  attachment?: boolean;
+  modalities?: { input: string[]; output: string[] };
 };
 
 type ModelsDevModel = {
   id?: string;
   name?: string;
   cost?: { input?: number; output?: number; cache_read?: number; cache_write?: number };
+  attachment?: boolean;
+  modalities?: { input?: string[]; output?: string[] };
 };
 
 type ModelsDevProvider = { models?: Record<string, ModelsDevModel> };
@@ -42,7 +47,17 @@ export function parseModelsDev(json: string): ModelsDevRow[] {
       const cost: ModelsDevRow["cost"] = { input: model.cost.input, output: model.cost.output };
       if (model.cost.cache_read !== undefined) cost.cache_read = model.cost.cache_read;
       if (model.cost.cache_write !== undefined) cost.cache_write = model.cost.cache_write;
-      rows.push({ id: model.id, name: model.name ?? model.id, cost });
+      const row: ModelsDevRow = { id: model.id, name: model.name ?? model.id, cost };
+      if (typeof model.attachment === "boolean") row.attachment = model.attachment;
+      const input = model.modalities?.input?.filter((x) => typeof x === "string");
+      const output = model.modalities?.output?.filter((x) => typeof x === "string");
+      if (input?.length || output?.length) {
+        row.modalities = {
+          input: input?.length ? input : [...TEXT_ONLY_MODALITIES.input],
+          output: output?.length ? output : [...TEXT_ONLY_MODALITIES.output],
+        };
+      }
+      rows.push(row);
     }
   }
   return rows;
@@ -82,6 +97,43 @@ export function applyFreeCosts(
     model.cost = { ...FREE_COST };
     filledIds?.add(model.id);
     filled++;
+  }
+  return filled;
+}
+
+function textOnly(): { input: string[]; output: string[] } {
+  return { input: [...TEXT_ONLY_MODALITIES.input], output: [...TEXT_ONLY_MODALITIES.output] };
+}
+
+export function applyModelsDevModalities(models: ModelEntry[], rows: ModelsDevRow[]): number {
+  const index = indexRows(rows);
+  let filled = 0;
+  for (const model of models) {
+    const row = findRow(model, index);
+    const current = model.modalities;
+    if (current && model.attachment !== undefined) {
+      const extra = row?.modalities?.input?.filter((x) => !current.input.includes(x)) ?? [];
+      if (extra.length > 0) {
+        model.modalities = {
+          input: [...current.input, ...extra],
+          output: [...current.output],
+        };
+        if (model.modalities.input.includes("image")) model.attachment = true;
+        filled++;
+      }
+      continue;
+    }
+    if (row && (row.modalities || row.attachment !== undefined)) {
+      const modalities = row.modalities
+        ? { input: [...row.modalities.input], output: [...row.modalities.output] }
+        : textOnly();
+      model.modalities = modalities;
+      model.attachment = row.attachment ?? modalities.input.includes("image");
+      filled++;
+    } else {
+      model.attachment = false;
+      model.modalities = textOnly();
+    }
   }
   return filled;
 }

@@ -95,6 +95,41 @@ describe("buildModelEntry", () => {
     expect(entry!.cost).toEqual({ input: 0.5, output: 2 });
   });
 
+  test("maps CLI inputModalities to attachment and modalities for every SKU", () => {
+    const vision = buildModelEntry(
+      {
+        id: "google/gemini-3.5-flash",
+        provider: "vercel-ai-gateway",
+        spec: "chatComplete",
+        label: "Gemini",
+        name: "Gemini 3.5 Flash",
+        description: "d",
+        inputModalities: ["text", "image"],
+        contextWindow: 1e6,
+      },
+      new Map(),
+    );
+    const text = buildModelEntry(
+      {
+        id: "tencent/hy4-preview",
+        provider: "vercel-ai-gateway",
+        spec: "chatComplete",
+        label: "Hy4",
+        name: "Tencent Hy4 Preview",
+        description: "d",
+        inputModalities: ["text"],
+        contextWindow: 1048576,
+        maxOutputTokens: 64000,
+      },
+      new Map(),
+    );
+    expect(vision!.attachment).toBe(true);
+    expect(vision!.modalities).toEqual({ input: ["text", "image"], output: ["text"] });
+    expect(text!.attachment).toBe(false);
+    expect(text!.modalities).toEqual({ input: ["text"], output: ["text"] });
+    expect(text!.limit).toEqual({ context: 1048576, output: 64000 });
+  });
+
   test("does not invent a billed rate for models missing from the CLI cost map", () => {
     const sn: SnEntry = {
       id: "google/gemini-3.5-flash",
@@ -158,6 +193,37 @@ describe("generateOpencodeModels", () => {
       high: { reasoningEffort: "high" },
     });
   });
+
+  test("emits attachment and modalities, defaulting to text-only", () => {
+    const models = generateOpencodeModels([
+      {
+        id: "google/gemini-3.5-flash",
+        name: "Gemini 3.5 Flash",
+        tier: "open-source",
+        reasoning: false,
+        tool_call: true,
+        cost: { input: 1.5, output: 9 },
+        limit: { context: 1048576, output: 65536 },
+        attachment: true,
+        modalities: { input: ["text", "image"], output: ["text"] },
+      },
+      {
+        id: "tencent/hy4-preview",
+        name: "Tencent Hy4 Preview",
+        tier: "open-source",
+        reasoning: true,
+        tool_call: true,
+        cost: { input: 0.834, output: 2.501 },
+        limit: { context: 1048576, output: 64000 },
+      },
+    ]);
+    const gemini = models["gemini-3.5-flash"] as Record<string, unknown>;
+    const hy4 = models["hy4-preview"] as Record<string, unknown>;
+    expect(gemini.attachment).toBe(true);
+    expect(gemini.modalities).toEqual({ input: ["text", "image"], output: ["text"] });
+    expect(hy4.attachment).toBe(false);
+    expect(hy4.modalities).toEqual({ input: ["text"], output: ["text"] });
+  });
 });
 
 describe("loadCatalogFromBundle", () => {
@@ -167,8 +233,8 @@ describe("loadCatalogFromBundle", () => {
       '(Wt={ANTHROPIC:"anthropic",OPENAI:"openai",VERCEL_AI_GATEWAY:"vercel-ai-gateway"});',
       'var Aa="chatComplete",Ba="responses",qt=Vt[0];',
       "var Sn=(Wt=>({",
-      'SONNET_4_6:{id:"claude-sonnet-4-6",provider:Wt.ANTHROPIC,spec:Aa,label:"Sonnet",name:"Claude Sonnet 4.6",description:"d",reasoning:!0,reasoningEfforts:["low","medium","high"],contextWindow:2e5},',
-      'GPT_X:{id:"gpt-5.5",provider:Wt.OPENAI,spec:Ba,label:"GPT",name:"GPT-5.5",description:"d",reasoningEfforts:["low","high"],contextWindow:256000}',
+      'SONNET_4_6:{id:"claude-sonnet-4-6",provider:Wt.ANTHROPIC,spec:Aa,label:"Sonnet",name:"Claude Sonnet 4.6",description:"d",inputModalities:["text","image"],reasoning:!0,reasoningEfforts:["low","medium","high"],contextWindow:2e5},',
+      'GPT_X:{id:"gpt-5.5",provider:Wt.OPENAI,spec:Ba,label:"GPT",name:"GPT-5.5",description:"d",inputModalities:["text"],reasoningEfforts:["low","high"],contextWindow:256000}',
       "}))(Wt);",
       'var costs={anthropic:[{id:"anthropic:claude-sonnet-4-6",provider:"anthropic",category:"p",promptCost:3,completionCost:15,cacheWrite5mCost:3.75,cacheWrite1hCost:6,cacheHitCost:.3}],openai:[{id:"openai:gpt-5.5",provider:"openai",category:"p",promptCost:1,completionCost:2,cacheWrite5mCost:0,cacheWrite1hCost:0,cacheHitCost:0}]};',
     ].join("");
@@ -182,11 +248,15 @@ describe("loadCatalogFromBundle", () => {
     expect(sonnet!.reasoningEfforts).toEqual(["low", "medium", "high"]);
     expect(sonnet!.tier).toBe("premium");
     expect(sonnet!.limit.context).toBe(200000);
+    expect(sonnet!.attachment).toBe(true);
+    expect(sonnet!.modalities).toEqual({ input: ["text", "image"], output: ["text"] });
 
     const gpt = entries.find((e) => e.id === "gpt-5.5");
     expect(gpt).toBeDefined();
     expect(gpt!.reasoning).toBe(true);
     expect(gpt!.reasoningEfforts).toEqual(["low", "high"]);
+    expect(gpt!.attachment).toBe(false);
+    expect(gpt!.modalities).toEqual({ input: ["text"], output: ["text"] });
   });
 
   test("returns models when cost extraction fails", () => {
@@ -194,8 +264,8 @@ describe("loadCatalogFromBundle", () => {
       '(Wt={ANTHROPIC:"anthropic",OPENAI:"openai",VERCEL_AI_GATEWAY:"vercel-ai-gateway"});',
       'var Aa="chatComplete",Ba="responses",qt=Vt[0];',
       "var Sn=(Wt=>({",
-      'SONNET_4_6:{id:"claude-sonnet-4-6",provider:Wt.ANTHROPIC,spec:Aa,label:"Sonnet",name:"Claude Sonnet 4.6",description:"d",reasoning:!0,reasoningEfforts:["low","medium","high"],contextWindow:2e5},',
-      'GPT_X:{id:"gpt-5.5",provider:Wt.OPENAI,spec:Ba,label:"GPT",name:"GPT-5.5",description:"d",reasoningEfforts:["low","high"],contextWindow:256000}',
+      'SONNET_4_6:{id:"claude-sonnet-4-6",provider:Wt.ANTHROPIC,spec:Aa,label:"Sonnet",name:"Claude Sonnet 4.6",description:"d",inputModalities:["text","image"],reasoning:!0,reasoningEfforts:["low","medium","high"],contextWindow:2e5},',
+      'GPT_X:{id:"gpt-5.5",provider:Wt.OPENAI,spec:Ba,label:"GPT",name:"GPT-5.5",description:"d",inputModalities:["text"],reasoningEfforts:["low","high"],contextWindow:256000}',
       "}))(Wt);",
     ].join("");
 
