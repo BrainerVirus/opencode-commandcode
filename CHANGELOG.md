@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-08-28
+
 ### Added
 
 - semantic-release now cuts Keep a Changelog `[Unreleased]` into `## [version]` on publish and includes `CHANGELOG.md` in the post-release sync PR.
