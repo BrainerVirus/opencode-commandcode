@@ -140,6 +140,32 @@ test("config hook creates provider block if missing", async () => {
   expect(cc.npm).toBe("commandcode-go-opencode-provider")
 })
 
+test("config does not write to stdout or stderr by default", async () => {
+  const logs: unknown[][] = []
+  const warns: unknown[][] = []
+  const origLog = console.log
+  const origWarn = console.warn
+  console.log = (...args: unknown[]) => {
+    logs.push(args)
+  }
+  console.warn = (...args: unknown[]) => {
+    warns.push(args)
+  }
+  try {
+    const plugin = await pluginFn()
+    const config: Record<string, unknown> = { provider: { commandcode: {} } }
+    await plugin.config(config)
+    expect(logs).toEqual([])
+    expect(warns).toEqual([])
+    const cc = (config.provider as Record<string, Record<string, unknown>>).commandcode
+    expect(cc.models).toBeDefined()
+    expect(Object.keys(cc.models as object).length).toBeGreaterThan(0)
+  } finally {
+    console.log = origLog
+    console.warn = origWarn
+  }
+})
+
 test("config hook attaches reasoning effort variants when available", async () => {
   const plugin = await pluginFn()
   const config: Record<string, unknown> = {
