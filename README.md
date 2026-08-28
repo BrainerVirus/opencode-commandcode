@@ -1,10 +1,18 @@
 # @brainervirus/commandcode-go-opencode-provider
 
+[![npm version](https://img.shields.io/npm/v/@brainervirus/commandcode-go-opencode-provider)](https://www.npmjs.com/package/@brainervirus/commandcode-go-opencode-provider)
+[![CI](https://img.shields.io/github/actions/workflow/status/BrainerVirus/opencode-commandcode-provider/test.yml?branch=main&label=CI)](https://github.com/BrainerVirus/opencode-commandcode-provider/actions)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 [Command Code](https://commandcode.ai) API provider for [opencode](https://opencode.ai). Use Claude, GPT, Gemini, DeepSeek, Qwen, Kimi, GLM, MiniMax, Step, and other models through a single API key.
 
-> **Forked from** [brent-weatherall/opencode-commandcode-provider](https://github.com/brent-weatherall/opencode-commandcode-provider) — originally created by [Brent Weatherall](https://github.com/brent-weatherall).
-
 This fork keeps a **bundled** model catalog current via CI. You do **not** need a local `command-code` CLI. Catalog patches publish automatically when Command Code ships a new npm version.
+
+## Credits
+
+This plugin is based on **[opencode-commandcode-provider](https://github.com/brent-weatherall/opencode-commandcode-provider)** by **[Brent Weatherall](https://github.com/brent-weatherall)**. Thank you for the original OpenCode plugin, catalog extraction, and Command Code wiring.
+
+This public fork started from [FanFan4204/opencode-commandcode-provider](https://github.com/FanFan4204/opencode-commandcode-provider) and continues that work with a CI-kept catalog and npm releases. The license remains MIT; copyright stays with Brent Weatherall.
 
 ### Key improvements over upstream
 
@@ -81,4 +89,4 @@ The GitHub Actions secret name is `NPMJS` (same as workit). It is mapped to both
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE). Original copyright [Brent Weatherall](https://github.com/brent-weatherall).
