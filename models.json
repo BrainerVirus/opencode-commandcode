@@ -627,10 +627,10 @@
     ],
     "tool_call": true,
     "cost": {
-      "input": 0.75,
-      "output": 3.75,
-      "cache_read": 0.075,
-      "cache_write": 0.04167
+      "input": 1.5,
+      "output": 7.5,
+      "cache_read": 0.15,
+      "cache_write": 0.08334
     },
     "limit": {
       "context": 1048576,
@@ -657,9 +657,8 @@
     "reasoning": false,
     "tool_call": true,
     "cost": {
-      "input": 1,
-      "output": 3.2,
-      "cache_read": 0.2
+      "input": 0.95,
+      "output": 3.15
     },
     "limit": {
       "context": 200000,
@@ -1042,8 +1041,7 @@
     "tool_call": true,
     "cost": {
       "input": 0.6,
-      "output": 3,
-      "cache_read": 0.1
+      "output": 3
     },
     "limit": {
       "context": 256000,
@@ -1276,9 +1274,8 @@
     "reasoning": false,
     "tool_call": true,
     "cost": {
-      "input": 0.3,
-      "output": 1.2,
-      "cache_read": 0.03
+      "input": 0.5,
+      "output": 2
     },
     "limit": {
       "context": 200000,
