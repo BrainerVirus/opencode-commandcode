@@ -195,9 +195,11 @@ test("startup summary uses bundled manifest version and status", async () => {
   const summary = JSON.parse(readFileSync(join(testStateDir, "startup.json"), "utf-8"));
   const manifest = JSON.parse(readFileSync(join(repoRoot, "manifest.json"), "utf-8")) as {
     status: string;
+    commandCodeVersion: string;
   };
   expect(summary.catalogSource).toBe("bundled");
-  expect(summary.commandCodeVersion).toBe("1.38.1");
+  expect(summary.commandCodeVersion).toBe(manifest.commandCodeVersion);
+  expect(summary.commandCodeVersion).toMatch(/^\d+\.\d+\.\d+/);
   expect(summary.degraded).toBe(manifest.status === "degraded" || manifest.status === "broken");
   expect(summary.modelCount).toBeGreaterThan(20);
 });
