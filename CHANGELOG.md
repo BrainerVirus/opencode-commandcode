@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Catalog refresh and post-release manifest PRs auto-merge when required CI is green.
 
+### Fixed
+
+- Startup summary test reads the bundled command-code version from the manifest instead of pinning one release.
+
 ## [0.7.0] - 2026-08-28
 
 ### Changed
