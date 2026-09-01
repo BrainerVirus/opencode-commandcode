@@ -397,7 +397,6 @@
     "reasoning": true,
     "reasoningEfforts": [
       "low",
-      "medium",
       "high",
       "max"
     ],
@@ -1349,7 +1348,7 @@
   },
   {
     "id": "minimax/minimax-m2.7-free",
-    "name": "MiniMax M2.7 Free",
+    "name": "MiniMax M2.7 (Free)",
     "tier": "open-source",
     "reasoning": false,
     "tool_call": true,
@@ -1399,6 +1398,31 @@
     }
   },
   {
+    "id": "minimax/minimax-m3-free",
+    "name": "MiniMax M3 (Free)",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 0,
+      "output": 0
+    },
+    "limit": {
+      "context": 1000000,
+      "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
+    }
+  },
+  {
     "id": "MiniMaxAI/MiniMax-M3-Free",
     "name": "MiniMax M3 Free",
     "tier": "open-source",
@@ -1418,31 +1442,6 @@
         "text",
         "image",
         "video"
-      ],
-      "output": [
-        "text"
-      ]
-    }
-  },
-  {
-    "id": "minimax/minimax-m3-free",
-    "name": "MiniMax M3 Free",
-    "tier": "open-source",
-    "reasoning": true,
-    "tool_call": true,
-    "cost": {
-      "input": 0,
-      "output": 0
-    },
-    "limit": {
-      "context": 1000000,
-      "output": 65536
-    },
-    "attachment": true,
-    "modalities": {
-      "input": [
-        "text",
-        "image"
       ],
       "output": [
         "text"
