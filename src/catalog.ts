@@ -279,7 +279,9 @@ export function extractStringBindings(
 ): Record<string, string> {
   const before = source.slice(Math.max(0, endIdx - window), endIdx);
   const bindings: Record<string, string> = {};
-  const strRe = /\b([A-Za-z_$][\w$]*)="([^"]*)"/g;
+  // \b does not fire before "$" (not a word char); minified bundles use names like
+  // $R="vercel-ai-gateway". A lookbehind boundary handles both $ and letter names.
+  const strRe = /(?<![A-Za-z0-9_$])([A-Za-z_$][\w$]*)="([^"]*)"/g;
   let m: RegExpExecArray | null;
   while ((m = strRe.exec(before))) {
     const name = m[1];
@@ -287,7 +289,7 @@ export function extractStringBindings(
     if (name !== undefined && value !== undefined) bindings[name] = value;
   }
   for (let pass = 0; pass < 4; pass++) {
-    const aliasRe = /\b([A-Za-z_$][\w$]*)=([A-Za-z_$][\w$]*)\b/g;
+    const aliasRe = /(?<![A-Za-z0-9_$])([A-Za-z_$][\w$]*)=([A-Za-z_$][\w$]*)(?![A-Za-z0-9_$])/g;
     while ((m = aliasRe.exec(before))) {
       const alias = m[1];
       const target = m[2];
