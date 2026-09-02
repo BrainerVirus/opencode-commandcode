@@ -1,6 +1,6 @@
 {
   "name": "@brainervirus/opencode-commandcode",
-  "version": "0.7.30",
+  "version": "0.7.31",
   "description": "Command Code API provider for opencode — use Claude, GPT, Gemini, DeepSeek, Qwen, Kimi, GLM, MiniMax, and Step models via Command Code",
   "keywords": [
     "ai",
