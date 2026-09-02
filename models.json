@@ -34,6 +34,41 @@
     }
   },
   {
+    "id": "claude-fable-5-1",
+    "name": "Claude Fable 5.1",
+    "tier": "premium",
+    "reasoning": true,
+    "reasoningEfforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ],
+    "tool_call": true,
+    "cost": {
+      "input": 10,
+      "output": 50,
+      "cache_read": 0.25,
+      "cache_write": 12.5
+    },
+    "limit": {
+      "context": 1000000,
+      "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "pdf"
+      ],
+      "output": [
+        "text"
+      ]
+    }
+  },
+  {
     "id": "claude-haiku-4-5-20251001",
     "name": "Claude Haiku 4.5",
     "tier": "premium",
