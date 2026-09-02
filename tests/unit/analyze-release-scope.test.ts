@@ -109,24 +109,13 @@ describe("analyzeReleaseScope", () => {
     }
   });
 
-  test("chore(scope) commits that only touch non-product files yield no release", () => {
+  test("chore(scope) commits never yield a release even when they touch product files", () => {
     const r = repo();
     r.tag("v0.6.0");
     try {
-      r.commit("chore(catalog): tweak CI", { ".github/workflows/catalog-sync.yml": "cron: 0 *\n" });
+      r.commit("chore(catalog): sync command-code@1.40.1", { "models.json": "[]\n" });
+      r.commit("chore(release): sync manifests to v0.7.5", { "package.json": "{}" });
       expect(analyzeReleaseScope(r.root)).toEqual({ level: null });
-    } finally {
-      r.cleanup();
-    }
-  });
-
-  test("chore(scope) with product-file change still releases at patch", () => {
-    const r = repo();
-    r.tag("v0.6.0");
-    try {
-      r.commit("chore(catalog): refresh", { "models.json": "[]\n" });
-      // prod file touched + chore(scope): treat as the scope's default patch release
-      expect(analyzeReleaseScope(r.root).level).toBe("patch");
     } finally {
       r.cleanup();
     }
