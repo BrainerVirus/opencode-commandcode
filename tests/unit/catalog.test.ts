@@ -273,6 +273,17 @@ describe("loadCatalogFromBundle", () => {
     expect(sonnet!.reasoningEfforts).toEqual(["low", "high"]);
   });
 
+  test("surfaces the real eval error when no candidate evaluates", () => {
+    // Bundle shape where the catalog references an unbindable identifier:
+    // the thrown error must name it, not the generic extraction failure.
+    const source = [
+      'var KR="chatComplete",qR="responses";',
+      'var Sn={SONNET_4_6:{id:"claude-sonnet-4-6",provider:$TOTALLY_MISSING,spec:KR,label:"Sonnet",name:"Claude Sonnet 4.6",description:"d"},GPT_X:{id:"gpt-5.5",provider:"openai",spec:KR,label:"GPT",name:"GPT-5.5",description:"d"}};',
+    ].join("");
+
+    expect(() => loadCatalogFromBundle(source)).toThrow(/\$TOTALLY_MISSING/);
+  });
+
   test("returns models when cost extraction fails", () => {
     const source = [
       '(Wt={ANTHROPIC:"anthropic",OPENAI:"openai",VERCEL_AI_GATEWAY:"vercel-ai-gateway"});',

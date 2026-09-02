@@ -396,16 +396,20 @@ export function extractModelCatalog(
   }
   if (candidates.length === 0) throw new Error("Could not locate model catalog object");
 
+  let lastError: unknown = null;
   for (const raw of candidates) {
     try {
       const value = evaluateWithContext(normalizeForEval(raw), ctx);
       if (isModelCatalog(value)) return value;
-    } catch {
-      // try next span
+    } catch (err) {
+      // keep the first real failure (e.g. "$R is not defined") — it names the
+      // missing binding; later candidates usually fail on the same cause
+      lastError ??= err;
     }
   }
 
-  throw new Error("Could not evaluate model catalog");
+  const detail = lastError instanceof Error ? `: ${lastError.message}` : "";
+  throw new Error(`Could not evaluate model catalog${detail}`);
 }
 
 function isCostMap(value: unknown): value is Record<string, CostEntry[]> {

@@ -31,6 +31,15 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Ensure automation labels
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_SYNC_TOKEN || secrets.CATALOG_PUSH_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create catalog-break --force --color B60205 \
+            --description "Catalog model extraction failed in CI" || true
+          gh label create automation --force --color 0E8A16 \
+            --description "Automated bot activity" || true
+
       - name: Open catalog PR
         env:
           CI: "true"
