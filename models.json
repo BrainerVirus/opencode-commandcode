@@ -1285,6 +1285,31 @@
     }
   },
   {
+    "id": "meituan/LongCat-2.0:free",
+    "name": "LongCat 2.0",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 0,
+      "output": 0,
+      "cache_read": 0
+    },
+    "limit": {
+      "context": 1048576,
+      "output": 65536
+    },
+    "attachment": false,
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
+    }
+  },
+  {
     "id": "xiaomi/mimo-v2.5",
     "name": "MiMo V2.5",
     "tier": "open-source",
@@ -1827,6 +1852,39 @@
         "text",
         "image",
         "video"
+      ],
+      "output": [
+        "text"
+      ]
+    }
+  },
+  {
+    "id": "Qwen/Qwen3.8-Max-0902",
+    "name": "Qwen 3.8 Max 0902",
+    "tier": "open-source",
+    "reasoning": true,
+    "reasoningEfforts": [
+      "low",
+      "medium",
+      "xhigh"
+    ],
+    "tool_call": true,
+    "cost": {
+      "input": 2,
+      "output": 6,
+      "cache_read": 0.25
+    },
+    "limit": {
+      "context": 1000000,
+      "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video",
+        "pdf"
       ],
       "output": [
         "text"
