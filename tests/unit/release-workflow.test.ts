@@ -153,6 +153,23 @@ describe("catalog-sync.yml", () => {
     expect(blob).not.toContain("semantic-release");
     expect(blob).not.toContain("publish-if-needed");
   });
+
+  test("creates the catalog-break labels before syncing so break issues never fail", () => {
+    const wf = Bun.YAML.parse(read(".github/workflows/catalog-sync.yml")) as {
+      jobs: { sync: { steps: Array<{ name?: string; run?: string }> } };
+    };
+    const labelStep = wf.jobs.sync.steps.find((s) => s.name === "Ensure automation labels");
+    expect(labelStep).toBeDefined();
+    const run = labelStep!.run ?? "";
+    expect(run).toContain("gh label create catalog-break");
+    expect(run).toContain("gh label create automation");
+    expect(run).toContain("--force");
+    // must run before the sync step that opens break issues
+    const steps = wf.jobs.sync.steps;
+    expect(steps.findIndex((s) => s.name === "Ensure automation labels")).toBeLessThan(
+      steps.findIndex((s) => (s.run ?? "").includes("catalog-sync-ci.ts")),
+    );
+  });
 });
 
 describe("release.config.cjs", () => {
