@@ -259,6 +259,20 @@ describe("loadCatalogFromBundle", () => {
     expect(gpt!.modalities).toEqual({ input: ["text"], output: ["text"] });
   });
 
+  test("binds string vars prefixed with $ (minifier shape) for catalog eval", () => {
+    // command-code 1.40 bundles provider/spec constants into $R="..."-style vars;
+    // a \b boundary skips "$" and breaks evaluation of the model catalog object.
+    const source = [
+      'var $R="vercel-ai-gateway",KR="chatComplete",qR="responses";',
+      'var Sn=($R=>({SONNET_4_6:{id:"claude-sonnet-4-6",provider:$R,spec:KR,label:"Sonnet",name:"Claude Sonnet 4.6",description:"d",reasoning:!0,reasoningEfforts:["low","high"],contextWindow:2e5},GPT_X:{id:"gpt-5.5",provider:"openai",spec:qR,label:"GPT",name:"GPT-5.5",description:"d",inputModalities:["text"]}}))($R);',
+    ].join("");
+
+    const entries = loadCatalogFromBundle(source);
+    const sonnet = entries.find((e) => e.id === "claude-sonnet-4-6");
+    expect(sonnet).toBeDefined();
+    expect(sonnet!.reasoningEfforts).toEqual(["low", "high"]);
+  });
+
   test("returns models when cost extraction fails", () => {
     const source = [
       '(Wt={ANTHROPIC:"anthropic",OPENAI:"openai",VERCEL_AI_GATEWAY:"vercel-ai-gateway"});',

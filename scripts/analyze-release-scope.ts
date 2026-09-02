@@ -31,15 +31,18 @@ export function latestTag(root = process.cwd()): string | null {
 
 type Level = "major" | "minor" | "patch";
 const LEVEL_RANK: Record<Level, number> = { patch: 1, minor: 2, major: 3 };
+// "chore(scope)" covers routine product refreshes that still ship (e.g.
+// chore(catalog): sync models.json); "chore" without a scope stays inert.
 const TYPE_LEVEL: Record<string, Level> = { fix: "patch", perf: "patch", feat: "minor" };
 
 const subjectLevel = (commit: string): Level | null => {
   const firstLine = commit.split("\n")[0] ?? "";
-  const m = /^(?:fix|perf|feat)(?:\([^)]*\))?!?:/.exec(firstLine);
+  const m = /^(?:(?:fix|perf|feat)|chore\([^)]*\))(?:\([^)]*\))?!?:/.exec(firstLine);
   if (!m) return null;
   if (m[0].includes("!")) return "major";
   const body = commit.split("\n").slice(1).join("\n");
   const type = m[0].replace(/\(.*$/, "").replace(/!$/, "").replace(/:$/, "");
+  if (type === "chore") return "patch";
   return /BREAKING[- ]CHANGE:/.test(body) ? "major" : (TYPE_LEVEL[type] ?? null);
 };
 

@@ -1,5 +1,6 @@
 export function catalogBreakTitle(commandCodeVersion: string): string {
-  return `[catalog-break] command-code@${commandCodeVersion} — model extraction failed`;
+  const version = commandCodeVersion.trim().replace(/^v/, "");
+  return `[catalog-break] command-code@${version} — model extraction failed`;
 }
 
 export function renderCatalogBreakBody(input: {

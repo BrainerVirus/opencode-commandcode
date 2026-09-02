@@ -11,6 +11,12 @@ describe("catalogBreakTitle", () => {
       "[catalog-break] command-code@1.39.0 — model extraction failed",
     );
   });
+
+  test("survives npm version tags with leading v", () => {
+    expect(catalogBreakTitle("v1.39.0")).toBe(
+      "[catalog-break] command-code@1.39.0 — model extraction failed",
+    );
+  });
 });
 
 describe("renderCatalogBreakBody", () => {
@@ -26,6 +32,20 @@ describe("renderCatalogBreakBody", () => {
     expect(body).toContain("https://github.com/BrainerVirus/opencode-commandcode/actions/runs/1");
     expect(body).toContain("1.38.1");
     expect(body).toContain("src/catalog.ts");
+  });
+
+  test("normalizes whitespace inside the embedded error and bundled version", () => {
+    const body = renderCatalogBreakBody({
+      commandCodeVersion: "1.40.1",
+      error: "SyntaxError: unexpected token\n    at foo",
+      workflowUrl: "https://example.com/run",
+      bundledCommandCodeVersion: "0.7.4",
+    });
+    // error code block preserved verbatim
+    expect(body).toContain("SyntaxError: unexpected token");
+    // no double blank lines or stray leading spaces collapse the markdown
+    expect(body).not.toMatch(/\n{3,}/);
+    expect(body).toContain("command-code@1.40.1");
   });
 });
 
