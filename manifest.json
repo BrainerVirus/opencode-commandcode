@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "generatedAt": "2026-09-02T12:41:12.672Z",
-  "pluginVersion": "0.7.36",
+  "pluginVersion": "0.7.37",
   "commandCodeVersion": "1.40.1",
   "commandCodeTarball": "https://registry.npmjs.org/command-code/-/command-code-1.40.1.tgz",
   "modelCount": 67,
