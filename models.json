@@ -1552,6 +1552,12 @@
     "name": "Muse Spark 1.1",
     "tier": "open-source",
     "reasoning": true,
+    "reasoningEfforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ],
     "tool_call": true,
     "cost": {
       "input": 1.25,
@@ -1581,6 +1587,12 @@
     "name": "Muse Spark 1.2",
     "tier": "open-source",
     "reasoning": true,
+    "reasoningEfforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ],
     "tool_call": true,
     "cost": {
       "input": 1.25,
@@ -1610,6 +1622,12 @@
     "name": "Muse Spark 1.2 Contributor",
     "tier": "open-source",
     "reasoning": true,
+    "reasoningEfforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ],
     "tool_call": true,
     "cost": {
       "input": 0.1,
@@ -1639,6 +1657,12 @@
     "name": "Muse Spark 1.3",
     "tier": "open-source",
     "reasoning": true,
+    "reasoningEfforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ],
     "tool_call": true,
     "cost": {
       "input": 1.25,
@@ -1668,6 +1692,12 @@
     "name": "Muse Spark 1.3 Contributor",
     "tier": "open-source",
     "reasoning": true,
+    "reasoningEfforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ],
     "tool_call": true,
     "cost": {
       "input": 0.1,
