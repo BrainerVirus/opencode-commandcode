@@ -397,6 +397,41 @@
     }
   },
   {
+    "id": "gpt-6-astra",
+    "name": "GPT-6 Astra",
+    "tier": "premium",
+    "reasoning": true,
+    "reasoningEfforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ],
+    "tool_call": true,
+    "cost": {
+      "input": 10,
+      "output": 50,
+      "cache_read": 1,
+      "cache_write": 12.5
+    },
+    "limit": {
+      "context": 1050000,
+      "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "pdf"
+      ],
+      "output": [
+        "text"
+      ]
+    }
+  },
+  {
     "id": "deepseek/deepseek-v4-flash",
     "name": "DeepSeek V4 Flash (latest)",
     "tier": "open-source",
@@ -1661,7 +1696,8 @@
       "low",
       "medium",
       "high",
-      "xhigh"
+      "xhigh",
+      "max"
     ],
     "tool_call": true,
     "cost": {
