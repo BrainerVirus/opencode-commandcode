@@ -26,7 +26,8 @@
     "modalities": {
       "input": [
         "text",
-        "image"
+        "image",
+        "pdf"
       ],
       "output": [
         "text"
@@ -158,7 +159,8 @@
     "modalities": {
       "input": [
         "text",
-        "image"
+        "image",
+        "pdf"
       ],
       "output": [
         "text"
@@ -192,7 +194,8 @@
     "modalities": {
       "input": [
         "text",
-        "image"
+        "image",
+        "pdf"
       ],
       "output": [
         "text"
@@ -261,7 +264,8 @@
     "modalities": {
       "input": [
         "text",
-        "image"
+        "image",
+        "pdf"
       ],
       "output": [
         "text"
@@ -389,7 +393,8 @@
     "modalities": {
       "input": [
         "text",
-        "image"
+        "image",
+        "pdf"
       ],
       "output": [
         "text"
@@ -543,6 +548,32 @@
     "modalities": {
       "input": [
         "text"
+      ],
+      "output": [
+        "text"
+      ]
+    }
+  },
+  {
+    "id": "deepseek/deepseek-v4.1-flash-beta",
+    "name": "DeepSeek V4.1 Flash (beta)",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 0.22,
+      "output": 0.66,
+      "cache_read": 0.007
+    },
+    "limit": {
+      "context": 1000000,
+      "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image"
       ],
       "output": [
         "text"
@@ -977,7 +1008,8 @@
     "modalities": {
       "input": [
         "text",
-        "image"
+        "image",
+        "pdf"
       ],
       "output": [
         "text"
@@ -1011,7 +1043,8 @@
     "modalities": {
       "input": [
         "text",
-        "image"
+        "image",
+        "pdf"
       ],
       "output": [
         "text"
@@ -1045,7 +1078,8 @@
     "modalities": {
       "input": [
         "text",
-        "image"
+        "image",
+        "pdf"
       ],
       "output": [
         "text"
