@@ -1,6 +1,21 @@
 import { expect, test, describe } from "bun:test";
-import { readFileSync } from "fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { spawnSync } from "node:child_process";
+import { tmpdir } from "os";
 import { join } from "path";
+import { buildManifest, withPluginVersion } from "../../src/manifest.ts";
+
+const buildManifestForVersion = (pluginVersion: string) =>
+  buildManifest({
+    pluginVersion,
+    commandCodeVersion: "1.38.1",
+    commandCodeTarball: "https://registry.npmjs.org/command-code/-/command-code-1.38.1.tgz",
+    modelCount: 2,
+    reasoningModelCount: 1,
+    modelCatalogOk: true,
+    costSources: { cli: 2, officialDocs: 0, thirdParty: 0, free: 0, fallback: 0, unmatched: 0 },
+    generatedAt: "2026-08-28T17:00:00.000Z",
+  });
 
 const ROOT = join(import.meta.dir, "../..");
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf-8");
@@ -200,18 +215,33 @@ describe("release.config.cjs", () => {
 });
 
 describe("prepare-release-manifest.ts", () => {
-  test("updates only pluginVersion from the release version", () => {
-    const src = read("scripts/prepare-release-manifest.ts");
-    expect(src).toContain("withPluginVersion");
-    expect(src).toContain("process.argv");
+  test("sets only pluginVersion from the release version", () => {
+    expect(read("scripts/prepare-release-manifest.ts")).toContain("withPluginVersion");
+    const manifest = buildManifestForVersion("0.5.0");
+    const updated = withPluginVersion(manifest, "0.6.0");
+    expect(updated.pluginVersion).toBe("0.6.0");
+    expect(updated.modelCount).toBe(manifest.modelCount);
   });
 });
 
 describe("verify-manifest-version.ts", () => {
-  test("guards the packed manifest against the package version", () => {
-    const src = read("scripts/verify-manifest-version.ts");
-    expect(src).toContain("pluginVersion");
-    expect(src).toContain("process.exit");
+  test("exits non-zero for mismatched versions and zero for equal versions", () => {
+    const dir = mkdtempSync(join(tmpdir(), "cc-mmv-"));
+    try {
+      writeFileSync(join(dir, "package.json"), JSON.stringify({ version: "1.0.0" }));
+      writeFileSync(join(dir, "manifest.json"), JSON.stringify({ pluginVersion: "9.9.9" }));
+      expect(spawnSync("bun", ["run", "scripts/verify-manifest-version.ts", dir]).status).not.toBe(
+        0,
+      );
+      writeFileSync(join(dir, "manifest.json"), JSON.stringify({ pluginVersion: "1.0.0" }));
+      const ok = spawnSync("bun", ["run", "scripts/verify-manifest-version.ts", dir], {
+        encoding: "utf-8",
+      });
+      expect(ok.status).toBe(0);
+      expect(ok.stdout).toContain("1.0.0");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
     expect(json<{ scripts?: Record<string, string> }>("package.json").scripts?.prepack).toContain(
       "verify-manifest-version",
     );
@@ -240,5 +270,9 @@ describe("verify-release-candidate.ts", () => {
   test("rejects a packed manifest whose pluginVersion differs from package.json", () => {
     const src = read("scripts/verify-release-candidate.ts");
     expect(src).toContain("pluginVersion");
+    const packed = JSON.parse(read("manifest.json")) as { pluginVersion?: string };
+    expect(packed.pluginVersion).toBe(
+      (JSON.parse(read("package.json")) as { version: string }).version,
+    );
   });
 });

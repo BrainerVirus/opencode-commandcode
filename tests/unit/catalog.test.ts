@@ -4,7 +4,6 @@ import {
   disambiguateModelNames,
   filterCatalogByAvailability,
   generateOpencodeModels,
-  intersectAvailability,
   loadCatalogFromBundle,
   parseAvailabilityIds,
   resolveCommandCodePackage,
@@ -359,17 +358,6 @@ describe("parseAvailabilityIds", () => {
   });
 });
 
-describe("intersectAvailability", () => {
-  test("retains only exact, case-sensitive matches and sorts exclusions", () => {
-    const result = intersectAvailability(
-      ["claude-sonnet-4-6", "GPT-5.5", "retired-promo"],
-      ["claude-sonnet-4-6", "gpt-5.5"],
-    );
-    expect(result.retained).toEqual(["claude-sonnet-4-6"]);
-    expect(result.unavailable).toEqual(["GPT-5.5", "retired-promo"]);
-  });
-});
-
 describe("filterCatalogByAvailability", () => {
   const entry = (id: string): ModelEntry => ({
     id,
@@ -389,5 +377,22 @@ describe("filterCatalogByAvailability", () => {
     expect(retained.map((e) => e.id)).toEqual(["keep-a", "keep-b"]);
     expect(unavailable).toEqual(["retired"]);
     expect(retained.some((e) => e.id === "api-only")).toBe(false);
+  });
+
+  test("matching is exact and case-sensitive", () => {
+    const { retained, unavailable } = filterCatalogByAvailability(
+      [entry("claude-sonnet-4-6"), entry("GPT-5.5"), entry("retired-promo")],
+      ["claude-sonnet-4-6", "gpt-5.5"],
+    );
+    expect(retained.map((e) => e.id)).toEqual(["claude-sonnet-4-6"]);
+    expect(unavailable).toEqual(["GPT-5.5", "retired-promo"]);
+  });
+
+  test("CLI-derived and HARDCODED_EXTRAS candidates pass through the same filter", () => {
+    const { retained } = filterCatalogByAvailability(
+      [entry("Qwen/Qwen3.7-Max"), entry("cli-model")],
+      ["Qwen/Qwen3.7-Max", "cli-model"],
+    );
+    expect(retained.map((e) => e.id).sort()).toEqual(["Qwen/Qwen3.7-Max", "cli-model"]);
   });
 });

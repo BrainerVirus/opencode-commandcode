@@ -265,15 +265,19 @@ async function main() {
   console.log("Fetching callable model availability...");
   const availableIds = await fetchAvailabilityIds();
   console.log(`  Callable models: ${availableIds.length}`);
-  const { retained, unavailable } = filterCatalogByAvailability(candidates, availableIds);
-  console.log(`  Retained ${retained.length}, excluded ${unavailable.length} unavailable`);
+  // Enrichment mutates entries in place, so filter the extracted candidates
+  // first and run the floor gate before any cost work or artifact write.
+  const prefiltered = filterCatalogByAvailability(candidates, availableIds);
+  console.log(
+    `  Retained ${prefiltered.retained.length}, excluded ${prefiltered.unavailable.length} unavailable`,
+  );
   const last = lastSuccessfulModelCount(priorManifest);
-  if (!meetsModelCountFloor(retained.length, last)) {
+  if (!meetsModelCountFloor(prefiltered.retained.length, last)) {
     throw new Error(
-      `filtered model count ${retained.length} below floor (lastSuccessful=${last}); leaving generated artifacts unchanged`,
+      `filtered model count ${prefiltered.retained.length} below floor (lastSuccessful=${last}); leaving generated artifacts unchanged`,
     );
   }
-  const entries = retained;
+  const entries = prefiltered.retained;
 
   const cliIds = bundleSource ? cliCostIds(bundleSource) : new Set<string>();
   const docIds = new Set<string>();
@@ -307,48 +311,32 @@ async function main() {
   const modalityFilled = applyModelsDevModalities(entries, modelsDevRows);
   console.log(`  Applied models.dev modalities to ${modalityFilled} models`);
 
-  console.log(`\nWriting ${MODELS_JSON} with ${entries.length} models from ${sourceLabel}...`);
-  writeFileSync(MODELS_JSON, JSON.stringify(entries, null, 2) + "\n", "utf-8");
-  writeFileSync(VERSION_PATH, `${version}\n`, "utf-8");
-
+  // Entries are already filtered above; buildSyncArtifacts re-validates the
+  // floor and returns every generated payload before the first write.
   const pluginVersion = (JSON.parse(readFileSync(PACKAGE_JSON, "utf-8")) as { version: string })
     .version;
-  const unmatchedIds = entries
-    .filter(
-      (e) =>
-        !cliIds.has(e.id) && !docIds.has(e.id) && !freeIds.has(e.id) && !thirdPartyIds.has(e.id),
-    )
-    .map((e) => e.id);
-  const costSources = countCostSources({
-    modelIds: entries.map((e) => e.id),
+  const artifacts = buildSyncArtifacts({
+    candidates: entries,
+    version,
+    sourceLabel,
+    pluginVersion,
+    availableIds,
+    priorManifest,
     cliIds,
-    officialDocIds: docIds,
+    docIds,
     thirdPartyIds,
     freeIds,
+    generatedAt: new Date().toISOString(),
   });
-  writeManifest(
-    MANIFEST_PATH,
-    buildManifest({
-      pluginVersion,
-      commandCodeVersion: version,
-      commandCodeTarball: commandCodeTarballUrl(version),
-      modelCount: entries.length,
-      reasoningModelCount: entries.filter((e) => e.reasoning).length,
-      modelCatalogOk: true,
-      costSources,
-      review: withUnavailableIds(
-        {
-          thirdParty: [...thirdPartyIds],
-          free: [...freeIds],
-          unmatched: unmatchedIds,
-        },
-        unavailable,
-      ),
-      generatedAt: new Date().toISOString(),
-    }),
-  );
 
-  const modelsObj = generateOpencodeModels(entries);
+  console.log(
+    `\nWriting ${MODELS_JSON} with ${artifacts.models.length} models from ${sourceLabel}...`,
+  );
+  writeFileSync(MODELS_JSON, JSON.stringify(artifacts.models, null, 2) + "\n", "utf-8");
+  writeFileSync(VERSION_PATH, `${artifacts.version}\n`, "utf-8");
+  writeManifest(MANIFEST_PATH, artifacts.manifest);
+
+  const modelsObj = generateOpencodeModels(artifacts.models);
 
   if (shouldUpdateGlobal) {
     console.log("Updating global config...");
@@ -373,4 +361,9 @@ async function main() {
   console.log("\nDone.");
 }
 
-main();
+if (import.meta.main) {
+  main().catch((err) => {
+    console.error(err instanceof Error ? err.message : err);
+    process.exit(1);
+  });
+}

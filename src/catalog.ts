@@ -783,8 +783,6 @@ export function generateOpencodeModels(entries: ModelEntry[]): Record<string, un
 
 export const MODELS_API_URL = "https://api.commandcode.ai/provider/v1/models";
 
-export const UNAVAILABLE_REASON = "not-listed-by-provider-api";
-
 export interface FilteredCatalog<T extends { id: string }> {
   retained: T[];
   unavailable: string[];
@@ -820,17 +818,6 @@ export function parseAvailabilityIds(payload: unknown): string[] {
     ids.push(id);
   }
   return ids;
-}
-
-/** Exact, case-sensitive intersection of candidate and API IDs. API-only IDs are not synthesized. */
-export function intersectAvailability(
-  candidateIds: string[],
-  availableIds: string[],
-): { retained: string[]; unavailable: string[] } {
-  const available = new Set(availableIds);
-  const retained = candidateIds.filter((id) => available.has(id));
-  const unavailable = candidateIds.filter((id) => !available.has(id)).sort();
-  return { retained, unavailable };
 }
 
 /** Retain only candidates whose exact ID is callable; collect sorted excluded IDs. */

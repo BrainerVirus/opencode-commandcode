@@ -93,7 +93,7 @@ describe("buildSyncArtifacts", () => {
     ]);
   });
 
-  test("a validation failure builds nothing and leaves generated artifacts byte-for-byte unchanged", () => {
+  test("buildSyncArtifacts never writes generated artifacts, even on success", () => {
     const dir = mkdtempSync(join(tmpdir(), "cc-sync-"));
     try {
       const modelsPath = join(dir, "models.json");
@@ -107,6 +107,8 @@ describe("buildSyncArtifacts", () => {
         manifest: readFileSync(manifestPath, "utf-8"),
         version: readFileSync(versionPath, "utf-8"),
       };
+      // Throws on the floor (1 retained < 20) — the only path that must not write.
+      // Success returns payloads for main() to write after every build succeeds.
       expect(() =>
         buildSyncArtifacts({
           ...base,
