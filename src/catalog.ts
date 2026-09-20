@@ -781,7 +781,72 @@ export function generateOpencodeModels(entries: ModelEntry[]): Record<string, un
   return models;
 }
 
-// Keep import.meta.url resolution available for callers that need package-relative paths
+export const MODELS_API_URL = "https://api.commandcode.ai/provider/v1/models";
+
+export const UNAVAILABLE_REASON = "not-listed-by-provider-api";
+
+export interface FilteredCatalog<T extends { id: string }> {
+  retained: T[];
+  unavailable: string[];
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0;
+}
+
+/** Validate the OpenAI-style `{ object: "list", data: [{ id }] }` availability payload. */
+export function parseAvailabilityIds(payload: unknown): string[] {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new Error("availability response must be an object");
+  }
+  const body = payload as Record<string, unknown>;
+  if (body["object"] !== "list") throw new Error('availability response object must be "list"');
+  const data = body["data"];
+  if (!Array.isArray(data) || data.length === 0) {
+    throw new Error("availability response data must be a non-empty array");
+  }
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  for (const item of data) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      throw new Error("availability response items must be objects with a non-empty string id");
+    }
+    const id = (item as Record<string, unknown>)["id"];
+    if (!isNonEmptyString(id)) {
+      throw new Error("availability response items must be objects with a non-empty string id");
+    }
+    if (seen.has(id)) throw new Error(`duplicate availability id: ${id}`);
+    seen.add(id);
+    ids.push(id);
+  }
+  return ids;
+}
+
+/** Exact, case-sensitive intersection of candidate and API IDs. API-only IDs are not synthesized. */
+export function intersectAvailability(
+  candidateIds: string[],
+  availableIds: string[],
+): { retained: string[]; unavailable: string[] } {
+  const available = new Set(availableIds);
+  const retained = candidateIds.filter((id) => available.has(id));
+  const unavailable = candidateIds.filter((id) => !available.has(id)).sort();
+  return { retained, unavailable };
+}
+
+/** Retain only candidates whose exact ID is callable; collect sorted excluded IDs. */
+export function filterCatalogByAvailability<T extends { id: string }>(
+  candidates: T[],
+  availableIds: string[],
+): FilteredCatalog<T> {
+  const available = new Set(availableIds);
+  const retained = candidates.filter((entry) => available.has(entry.id));
+  const unavailable = candidates
+    .filter((entry) => !available.has(entry.id))
+    .map((entry) => entry.id)
+    .sort();
+  return { retained, unavailable };
+}
+
 export function catalogModuleDir(): string {
   return dirname(fileURLToPath(import.meta.url));
 }
