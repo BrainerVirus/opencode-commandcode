@@ -186,11 +186,34 @@ describe("release.config.cjs", () => {
     expect(cfg.indexOf("@semantic-release/exec")).toBeLessThan(
       cfg.indexOf("semantic-release-catalog-notes.cjs"),
     );
-    expect(cfg.indexOf("semantic-release-changelog.cjs")).toBeLessThan(
-      cfg.indexOf("@semantic-release/npm"),
+    expect(cfg.indexOf("prepare-release-manifest")).toBeGreaterThan(
+      cfg.indexOf("@semantic-release/exec"),
     );
-    expect(cfg.indexOf("@semantic-release/npm")).toBeLessThan(
-      cfg.indexOf("@semantic-release/github"),
+  });
+
+  test("sets the manifest version from nextRelease before packing", () => {
+    const cfg = read("release.config.cjs");
+    expect(cfg).toContain("prepare-release-manifest");
+    expect(cfg).toContain("nextRelease.version");
+    expect(cfg).toContain("prepareCmd");
+  });
+});
+
+describe("prepare-release-manifest.ts", () => {
+  test("updates only pluginVersion from the release version", () => {
+    const src = read("scripts/prepare-release-manifest.ts");
+    expect(src).toContain("withPluginVersion");
+    expect(src).toContain("process.argv");
+  });
+});
+
+describe("verify-manifest-version.ts", () => {
+  test("guards the packed manifest against the package version", () => {
+    const src = read("scripts/verify-manifest-version.ts");
+    expect(src).toContain("pluginVersion");
+    expect(src).toContain("process.exit");
+    expect(json<{ scripts?: Record<string, string> }>("package.json").scripts?.prepack).toContain(
+      "verify-manifest-version",
     );
   });
 });
@@ -212,5 +235,10 @@ describe("verify-release-candidate.ts", () => {
     expect(src).not.toMatch(
       /\b(?:npm|npx|bun)\s+(?:publish|login|adduser)\b|\bgit\s+(?:push|tag)\b/,
     );
+  });
+
+  test("rejects a packed manifest whose pluginVersion differs from package.json", () => {
+    const src = read("scripts/verify-release-candidate.ts");
+    expect(src).toContain("pluginVersion");
   });
 });

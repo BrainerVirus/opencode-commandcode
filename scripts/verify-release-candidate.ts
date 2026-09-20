@@ -35,7 +35,22 @@ try {
       throw new Error(`tarball must not include ${banned}`);
     }
   }
-  console.log(`verified ${tgz} (${files.length} files)`);
+  const pkgJson = JSON.parse(
+    execSync(`tar -xzOf ${JSON.stringify(join(dir, tgz))} package/package.json`, {
+      encoding: "utf-8",
+    }),
+  ) as { version?: string };
+  const packedManifest = JSON.parse(
+    execSync(`tar -xzOf ${JSON.stringify(join(dir, tgz))} package/manifest.json`, {
+      encoding: "utf-8",
+    }),
+  ) as { pluginVersion?: string };
+  if (pkgJson.version !== packedManifest.pluginVersion) {
+    throw new Error(
+      `packed manifest pluginVersion ${packedManifest.pluginVersion ?? "(missing)"} != package.json ${pkgJson.version ?? "(missing)"}`,
+    );
+  }
+  console.log(`verified ${tgz} (${files.length} files, version ${pkgJson.version})`);
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }

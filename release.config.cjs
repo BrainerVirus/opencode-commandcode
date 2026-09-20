@@ -7,6 +7,10 @@ module.exports = {
       "@semantic-release/exec",
       {
         analyzeCommitsCmd: "bun scripts/analyze-release-scope.ts",
+        // Stamp manifest.pluginVersion from nextRelease.version before
+        // the npm plugin packs, so the published tarball embeds the
+        // version it is published as.
+        prepareCmd: "bun scripts/prepare-release-manifest.ts ${nextRelease.version}",
       },
     ],
     "./scripts/semantic-release-catalog-notes.cjs",
