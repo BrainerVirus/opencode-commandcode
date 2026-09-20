@@ -108,7 +108,8 @@ describe("buildSyncArtifacts", () => {
         version: readFileSync(versionPath, "utf-8"),
       };
       // Throws on the floor (1 retained < 20) — the only path that must not write.
-      // Success returns payloads for main() to write after every build succeeds.
+      // Success returns payloads for main() to write after every build succeeds;
+      // the function takes no output paths, so it cannot write by construction.
       expect(() =>
         buildSyncArtifacts({
           ...base,
@@ -116,6 +117,19 @@ describe("buildSyncArtifacts", () => {
           availableIds: ["other"],
         }),
       ).toThrow();
+      expect(readFileSync(modelsPath, "utf-8")).toBe(before.models);
+      expect(readFileSync(manifestPath, "utf-8")).toBe(before.manifest);
+      expect(readFileSync(versionPath, "utf-8")).toBe(before.version);
+      const ok = buildSyncArtifacts({
+        ...base,
+        candidates: [
+          candidate("keep-a"),
+          ...Array.from({ length: 20 }, (_, i) => candidate(`keep-extra-${i}`)),
+        ],
+        availableIds: ["keep-a", ...Array.from({ length: 20 }, (_, i) => `keep-extra-${i}`)],
+      });
+      expect(ok.models).toHaveLength(21);
+      // Still untouched: main() performs the three writes from these payloads.
       expect(readFileSync(modelsPath, "utf-8")).toBe(before.models);
       expect(readFileSync(manifestPath, "utf-8")).toBe(before.manifest);
       expect(readFileSync(versionPath, "utf-8")).toBe(before.version);

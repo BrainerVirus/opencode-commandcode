@@ -204,6 +204,12 @@ describe("release.config.cjs", () => {
     expect(cfg.indexOf("prepare-release-manifest")).toBeGreaterThan(
       cfg.indexOf("@semantic-release/exec"),
     );
+    expect(cfg.lastIndexOf("@semantic-release/npm")).toBeGreaterThan(
+      cfg.indexOf("prepare-release-manifest"),
+    );
+    expect(cfg.lastIndexOf("@semantic-release/github")).toBeGreaterThan(
+      cfg.lastIndexOf("@semantic-release/npm"),
+    );
   });
 
   test("sets the manifest version from nextRelease before packing", () => {
