@@ -402,41 +402,6 @@
     }
   },
   {
-    "id": "gpt-6-astra",
-    "name": "GPT-6 Astra",
-    "tier": "premium",
-    "reasoning": true,
-    "reasoningEfforts": [
-      "low",
-      "medium",
-      "high",
-      "xhigh",
-      "max"
-    ],
-    "tool_call": true,
-    "cost": {
-      "input": 10,
-      "output": 50,
-      "cache_read": 1,
-      "cache_write": 12.5
-    },
-    "limit": {
-      "context": 1050000,
-      "output": 65536
-    },
-    "attachment": true,
-    "modalities": {
-      "input": [
-        "text",
-        "image",
-        "pdf"
-      ],
-      "output": [
-        "text"
-      ]
-    }
-  },
-  {
     "id": "deepseek/deepseek-v4-flash",
     "name": "DeepSeek V4 Flash (latest)",
     "tier": "open-source",
@@ -1401,30 +1366,6 @@
     }
   },
   {
-    "id": "inclusionai/ling-3.0-flash-free",
-    "name": "Ling 3.0 Flash",
-    "tier": "open-source",
-    "reasoning": true,
-    "tool_call": true,
-    "cost": {
-      "input": 0,
-      "output": 0
-    },
-    "limit": {
-      "context": 256000,
-      "output": 32768
-    },
-    "attachment": false,
-    "modalities": {
-      "input": [
-        "text"
-      ],
-      "output": [
-        "text"
-      ]
-    }
-  },
-  {
     "id": "inclusionai/ling-3.0-flash-sante:free",
     "name": "Ling 3.0 Flash Sante",
     "tier": "open-source",
@@ -1459,30 +1400,6 @@
       "input": 0.3,
       "output": 1.2,
       "cache_read": 0.006
-    },
-    "limit": {
-      "context": 1048576,
-      "output": 65536
-    },
-    "attachment": false,
-    "modalities": {
-      "input": [
-        "text"
-      ],
-      "output": [
-        "text"
-      ]
-    }
-  },
-  {
-    "id": "meituan/LongCat-2.0:free",
-    "name": "LongCat 2.0 (Free)",
-    "tier": "open-source",
-    "reasoning": true,
-    "tool_call": true,
-    "cost": {
-      "input": 0,
-      "output": 0
     },
     "limit": {
       "context": 1048576,
@@ -1601,30 +1518,6 @@
     }
   },
   {
-    "id": "minimax/minimax-m2.7-free",
-    "name": "MiniMax M2.7 (Free)",
-    "tier": "open-source",
-    "reasoning": false,
-    "tool_call": true,
-    "cost": {
-      "input": 0,
-      "output": 0
-    },
-    "limit": {
-      "context": 197000,
-      "output": 65536
-    },
-    "attachment": false,
-    "modalities": {
-      "input": [
-        "text"
-      ],
-      "output": [
-        "text"
-      ]
-    }
-  },
-  {
     "id": "MiniMaxAI/MiniMax-M3",
     "name": "MiniMax M3",
     "tier": "open-source",
@@ -1639,68 +1532,6 @@
       "input": 0.3,
       "output": 1.2,
       "cache_read": 0.06
-    },
-    "limit": {
-      "context": 1000000,
-      "output": 65536
-    },
-    "attachment": true,
-    "modalities": {
-      "input": [
-        "text",
-        "image",
-        "video"
-      ],
-      "output": [
-        "text"
-      ]
-    }
-  },
-  {
-    "id": "minimax/minimax-m3-free",
-    "name": "MiniMax M3 (Free)",
-    "tier": "open-source",
-    "reasoning": true,
-    "reasoningEfforts": [
-      "low",
-      "medium",
-      "high"
-    ],
-    "tool_call": true,
-    "cost": {
-      "input": 0,
-      "output": 0
-    },
-    "limit": {
-      "context": 1000000,
-      "output": 65536
-    },
-    "attachment": true,
-    "modalities": {
-      "input": [
-        "text",
-        "image",
-        "video"
-      ],
-      "output": [
-        "text"
-      ]
-    }
-  },
-  {
-    "id": "MiniMaxAI/MiniMax-M3-Free",
-    "name": "MiniMax M3 Free",
-    "tier": "open-source",
-    "reasoning": true,
-    "reasoningEfforts": [
-      "low",
-      "medium",
-      "high"
-    ],
-    "tool_call": true,
-    "cost": {
-      "input": 0,
-      "output": 0
     },
     "limit": {
       "context": 1000000,
@@ -2279,30 +2110,6 @@
       "input": 0.14,
       "output": 0.58,
       "cache_read": 0.035
-    },
-    "limit": {
-      "context": 262144,
-      "output": 65536
-    },
-    "attachment": false,
-    "modalities": {
-      "input": [
-        "text"
-      ],
-      "output": [
-        "text"
-      ]
-    }
-  },
-  {
-    "id": "tencent/Hy3",
-    "name": "Tencent Hy3 (Free)",
-    "tier": "open-source",
-    "reasoning": true,
-    "tool_call": true,
-    "cost": {
-      "input": 0,
-      "output": 0
     },
     "limit": {
       "context": 262144,

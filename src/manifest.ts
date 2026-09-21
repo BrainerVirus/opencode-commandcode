@@ -12,10 +12,16 @@ export type CostSources = {
   unmatched: number;
 };
 
+export type UnavailableEntry = {
+  id: string;
+  reason: "not-listed-by-provider-api";
+};
+
 export type CatalogReview = {
   thirdParty: string[];
   free: string[];
   unmatched: string[];
+  unavailable?: UnavailableEntry[];
 };
 
 export type CatalogManifest = {
@@ -48,6 +54,25 @@ export type BuildManifestInput = {
   generatedAt: string;
   costCatalogError?: string | null;
 };
+
+export function withUnavailableIds(
+  review: CatalogReview | undefined,
+  unavailable: string[],
+): CatalogReview | undefined {
+  const entries: UnavailableEntry[] = [...unavailable]
+    .sort()
+    .map((id) => ({ id, reason: "not-listed-by-provider-api" as const }));
+  if (entries.length === 0) return review;
+  return { ...(review ?? { thirdParty: [], free: [], unmatched: [] }), unavailable: entries };
+}
+
+/** Update only the embedded plugin version; reject a missing target version. */
+export function withPluginVersion(manifest: CatalogManifest, version: string): CatalogManifest {
+  if (!version || typeof version !== "string" || version.trim().length === 0) {
+    throw new Error("target plugin version must be a non-empty string");
+  }
+  return { ...manifest, pluginVersion: version };
+}
 
 export function bumpPatch(version: string): string {
   const parts = version.split(".");

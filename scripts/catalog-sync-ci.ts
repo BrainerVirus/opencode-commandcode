@@ -3,26 +3,12 @@ import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { execSync } from "child_process";
 import { catalogBreakTitle, renderCatalogBreakBody } from "../src/catalog-break.js";
-import {
-  lastSuccessfulModelCount,
-  meetsModelCountFloor,
-  type CatalogManifest,
-} from "../src/manifest.js";
 import { decideCatalogSync } from "../src/publish-policy.js";
 import { npmLatestVersion, npmPackageVersions } from "./npm-registry.js";
 
 const ROOT = join(import.meta.dir, "..");
 const CATALOG_FILES = ["models.json", "_version.txt", "manifest.json"];
 const CATALOG_BRANCH = "chore/catalog-sync";
-
-function readJson<T>(path: string): T | null {
-  if (!existsSync(path)) return null;
-  try {
-    return JSON.parse(readFileSync(path, "utf-8")) as T;
-  } catch {
-    return null;
-  }
-}
 
 function bundledCommandCodeVersion(): string | null {
   const path = join(ROOT, "_version.txt");
@@ -123,7 +109,9 @@ async function main(): Promise<void> {
     return;
   }
 
-  const prior = readJson<CatalogManifest>(join(ROOT, "manifest.json"));
+  // sync-models.ts validates availability and the model-count floor before the
+  // first artifact write, so any failure there leaves the last-good catalog
+  // untouched and routes here through the catalog-break issue path.
   const beforeModels = existsSync(join(ROOT, "models.json"))
     ? readFileSync(join(ROOT, "models.json"), "utf-8")
     : "";
@@ -143,19 +131,6 @@ async function main(): Promise<void> {
   }
 
   const afterModels = readFileSync(join(ROOT, "models.json"), "utf-8");
-  const entries = JSON.parse(afterModels) as unknown[];
-  const lastCount = lastSuccessfulModelCount(prior);
-  if (!meetsModelCountFloor(entries.length, lastCount)) {
-    const message = `model count ${entries.length} below floor (lastSuccessful=${lastCount})`;
-    try {
-      openOrUpdateCatalogBreak({ commandCodeVersion: latestCc, error: message });
-    } catch (issueErr) {
-      console.error("failed to open catalog-break issue", issueErr);
-    }
-    execSync(`git checkout -- ${CATALOG_FILES.join(" ")}`, { cwd: ROOT, stdio: "inherit" });
-    process.exitCode = 1;
-    return;
-  }
 
   const changed = afterModels !== beforeModels || bundledCommandCodeVersion() !== beforeVersion;
   if (!changed) {

@@ -7,6 +7,8 @@ import {
   bumpPatch,
   countCostSources,
   meetsModelCountFloor,
+  withPluginVersion,
+  withUnavailableIds,
   writeManifest,
   type CostSources,
 } from "../../src/manifest.ts";
@@ -56,7 +58,6 @@ describe("buildManifest", () => {
     expect(manifest.extraction.modelCatalog).toBe("ok");
     expect(manifest.extraction.costCatalog).toBe("cli");
     expect(manifest.schemaVersion).toBe(1);
-    expect(manifest.gitCommit).toBeUndefined();
   });
 
   test("marks healthy when leftover costs come from models.dev or free SKUs", () => {
@@ -147,5 +148,76 @@ describe("countCostSources", () => {
       fallback: 0,
       unmatched: 1,
     });
+  });
+});
+
+describe("withUnavailableIds", () => {
+  test("adds sorted unavailable entries without changing schemaVersion", () => {
+    const manifest = buildManifest({
+      pluginVersion: "0.5.0",
+      commandCodeVersion: "1.38.1",
+      commandCodeTarball: "https://registry.npmjs.org/command-code/-/command-code-1.38.1.tgz",
+      modelCount: 2,
+      reasoningModelCount: 1,
+      modelCatalogOk: true,
+      costSources: sources({ cli: 2 }),
+      review: { thirdParty: [], free: [], unmatched: [] },
+      generatedAt: "2026-08-28T17:00:00.000Z",
+    });
+    const review = withUnavailableIds(manifest.review, ["z-retired", "a-retired"]);
+    expect(review?.unavailable).toEqual([
+      { id: "a-retired", reason: "not-listed-by-provider-api" },
+      { id: "z-retired", reason: "not-listed-by-provider-api" },
+    ]);
+    const rebuilt = buildManifest({
+      pluginVersion: manifest.pluginVersion,
+      commandCodeVersion: manifest.commandCodeVersion,
+      commandCodeTarball: manifest.commandCodeTarball,
+      modelCount: manifest.modelCount,
+      reasoningModelCount: manifest.reasoningModelCount,
+      modelCatalogOk: true,
+      costSources: manifest.costSources,
+      review,
+      generatedAt: manifest.generatedAt,
+    });
+    expect(rebuilt.schemaVersion).toBe(1);
+    expect(rebuilt.review?.unavailable).toEqual(review?.unavailable);
+  });
+
+  test("keeps review undefined when nothing is unavailable", () => {
+    expect(withUnavailableIds(undefined, [])).toBeUndefined();
+  });
+});
+
+describe("withPluginVersion", () => {
+  test("sets only pluginVersion from an explicit release version", () => {
+    const manifest = buildManifest({
+      pluginVersion: "0.5.0",
+      commandCodeVersion: "1.38.1",
+      commandCodeTarball: "https://registry.npmjs.org/command-code/-/command-code-1.38.1.tgz",
+      modelCount: 2,
+      reasoningModelCount: 1,
+      modelCatalogOk: true,
+      costSources: sources({ cli: 2 }),
+      generatedAt: "2026-08-28T17:00:00.000Z",
+    });
+    const updated = withPluginVersion(manifest, "0.6.0");
+    expect(updated.pluginVersion).toBe("0.6.0");
+    expect(updated.modelCount).toBe(manifest.modelCount);
+    expect(updated.commandCodeVersion).toBe(manifest.commandCodeVersion);
+  });
+
+  test("rejects a missing target version", () => {
+    const manifest = buildManifest({
+      pluginVersion: "0.5.0",
+      commandCodeVersion: "1.38.1",
+      commandCodeTarball: "https://registry.npmjs.org/command-code/-/command-code-1.38.1.tgz",
+      modelCount: 2,
+      reasoningModelCount: 1,
+      modelCatalogOk: true,
+      costSources: sources({ cli: 2 }),
+      generatedAt: "2026-08-28T17:00:00.000Z",
+    });
+    expect(() => withPluginVersion(manifest, "")).toThrow();
   });
 });

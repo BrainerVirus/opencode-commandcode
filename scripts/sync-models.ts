@@ -4,11 +4,14 @@ import { homedir, tmpdir } from "os";
 import { execSync } from "child_process";
 import {
   NPM_PACKAGE,
+  MODELS_API_URL,
   extractCostData,
   buildCostMap,
+  filterCatalogByAvailability,
   generateOpencodeModels,
   loadCatalogFromBundle,
   loadCatalogFromLocalCommandCode,
+  parseAvailabilityIds,
   type ModelEntry,
 } from "../src/catalog.js";
 import { applyDocCosts, fetchOfficialModelsMarkdown, parseModelsTable } from "../src/costs-docs.js";
@@ -23,8 +26,98 @@ import {
   buildManifest,
   commandCodeTarballUrl,
   countCostSources,
+  lastSuccessfulModelCount,
+  meetsModelCountFloor,
+  withUnavailableIds,
   writeManifest,
+  type CatalogManifest,
 } from "../src/manifest.js";
+
+export type SyncArtifacts = {
+  models: ModelEntry[];
+  version: string;
+  manifest: CatalogManifest;
+};
+
+function readPriorManifest(): CatalogManifest | null {
+  if (!existsSync(MANIFEST_PATH)) return null;
+  try {
+    return JSON.parse(readFileSync(MANIFEST_PATH, "utf-8")) as CatalogManifest;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchAvailabilityIds(): Promise<string[]> {
+  const resp = await fetch(MODELS_API_URL);
+  if (!resp.ok) throw new Error(`models endpoint returned ${resp.status}`);
+  let payload: unknown;
+  try {
+    payload = await resp.json();
+  } catch {
+    throw new Error("models endpoint returned invalid JSON");
+  }
+  return parseAvailabilityIds(payload);
+}
+
+/** Build all model, version, and manifest contents before the first write. */
+export function buildSyncArtifacts(input: {
+  candidates: ModelEntry[];
+  version: string;
+  sourceLabel: string;
+  pluginVersion: string;
+  availableIds: string[];
+  priorManifest: CatalogManifest | null;
+  cliIds: Set<string>;
+  docIds: Set<string>;
+  thirdPartyIds: Set<string>;
+  freeIds: Set<string>;
+  generatedAt: string;
+}): SyncArtifacts {
+  const { retained, unavailable } = filterCatalogByAvailability(
+    input.candidates,
+    input.availableIds,
+  );
+  const last = lastSuccessfulModelCount(input.priorManifest);
+  if (!meetsModelCountFloor(retained.length, last)) {
+    throw new Error(`filtered model count ${retained.length} below floor (lastSuccessful=${last})`);
+  }
+  const costSources = countCostSources({
+    modelIds: retained.map((e) => e.id),
+    cliIds: input.cliIds,
+    officialDocIds: input.docIds,
+    thirdPartyIds: input.thirdPartyIds,
+    freeIds: input.freeIds,
+  });
+  const unmatchedIds = retained
+    .filter(
+      (e) =>
+        !input.cliIds.has(e.id) &&
+        !input.docIds.has(e.id) &&
+        !input.freeIds.has(e.id) &&
+        !input.thirdPartyIds.has(e.id),
+    )
+    .map((e) => e.id);
+  const manifest = buildManifest({
+    pluginVersion: input.pluginVersion,
+    commandCodeVersion: input.version,
+    commandCodeTarball: commandCodeTarballUrl(input.version),
+    modelCount: retained.length,
+    reasoningModelCount: retained.filter((e) => e.reasoning).length,
+    modelCatalogOk: true,
+    costSources,
+    review: withUnavailableIds(
+      {
+        thirdParty: [...input.thirdPartyIds],
+        free: [...input.freeIds],
+        unmatched: unmatchedIds,
+      },
+      unavailable,
+    ),
+    generatedAt: input.generatedAt,
+  });
+  return { models: retained, version: input.version, manifest };
+}
 
 function cliCostIds(source: string): Set<string> {
   try {
@@ -143,20 +236,20 @@ async function main() {
   const shouldUpdateGlobal = args.includes("--update-global");
   const forceRemote = args.includes("--remote");
 
-  let entries: ModelEntry[];
   let version: string;
   let sourceLabel: string;
   let bundleSource: string | null = null;
 
   const local = !forceRemote ? loadCatalogFromLocalCommandCode() : null;
+  let candidates: ModelEntry[];
   if (local) {
-    entries = local.models;
+    candidates = local.models;
     version = local.version;
     bundleSource = local.bundleSource;
     sourceLabel = `local ${local.root}`;
     console.log(`Loaded catalog from local command-code@${version}`);
     console.log(`  Path: ${local.root}`);
-    console.log(`  Models: ${entries.length}`);
+    console.log(`  Models: ${candidates.length}`);
   } else {
     const bundle = await fetchLatestBundle();
     version = bundle.version;
@@ -164,9 +257,27 @@ async function main() {
     sourceLabel = `npm tarball v${version}`;
     console.log(`Read CLI bundle v${version} (${(bundle.source.length / 1024).toFixed(0)} KB)`);
     console.log("Extracting model catalog...");
-    entries = loadCatalogFromBundle(bundle.source);
-    console.log(`  Found ${entries.length} models`);
+    candidates = loadCatalogFromBundle(bundle.source);
+    console.log(`  Found ${candidates.length} models`);
   }
+
+  const priorManifest = readPriorManifest();
+  console.log("Fetching callable model availability...");
+  const availableIds = await fetchAvailabilityIds();
+  console.log(`  Callable models: ${availableIds.length}`);
+  // Enrichment mutates entries in place, so filter the extracted candidates
+  // first and run the floor gate before any cost work or artifact write.
+  const prefiltered = filterCatalogByAvailability(candidates, availableIds);
+  console.log(
+    `  Retained ${prefiltered.retained.length}, excluded ${prefiltered.unavailable.length} unavailable`,
+  );
+  const last = lastSuccessfulModelCount(priorManifest);
+  if (!meetsModelCountFloor(prefiltered.retained.length, last)) {
+    throw new Error(
+      `filtered model count ${prefiltered.retained.length} below floor (lastSuccessful=${last}); leaving generated artifacts unchanged`,
+    );
+  }
+  const entries = prefiltered.retained;
 
   const cliIds = bundleSource ? cliCostIds(bundleSource) : new Set<string>();
   const docIds = new Set<string>();
@@ -200,45 +311,32 @@ async function main() {
   const modalityFilled = applyModelsDevModalities(entries, modelsDevRows);
   console.log(`  Applied models.dev modalities to ${modalityFilled} models`);
 
-  console.log(`\nWriting ${MODELS_JSON} with ${entries.length} models from ${sourceLabel}...`);
-  writeFileSync(MODELS_JSON, JSON.stringify(entries, null, 2) + "\n", "utf-8");
-  writeFileSync(VERSION_PATH, `${version}\n`, "utf-8");
-
+  // Entries are already filtered above; buildSyncArtifacts re-validates the
+  // floor and returns every generated payload before the first write.
   const pluginVersion = (JSON.parse(readFileSync(PACKAGE_JSON, "utf-8")) as { version: string })
     .version;
-  const unmatchedIds = entries
-    .filter(
-      (e) =>
-        !cliIds.has(e.id) && !docIds.has(e.id) && !freeIds.has(e.id) && !thirdPartyIds.has(e.id),
-    )
-    .map((e) => e.id);
-  const costSources = countCostSources({
-    modelIds: entries.map((e) => e.id),
+  const artifacts = buildSyncArtifacts({
+    candidates: entries,
+    version,
+    sourceLabel,
+    pluginVersion,
+    availableIds,
+    priorManifest,
     cliIds,
-    officialDocIds: docIds,
+    docIds,
     thirdPartyIds,
     freeIds,
+    generatedAt: new Date().toISOString(),
   });
-  writeManifest(
-    MANIFEST_PATH,
-    buildManifest({
-      pluginVersion,
-      commandCodeVersion: version,
-      commandCodeTarball: commandCodeTarballUrl(version),
-      modelCount: entries.length,
-      reasoningModelCount: entries.filter((e) => e.reasoning).length,
-      modelCatalogOk: true,
-      costSources,
-      review: {
-        thirdParty: [...thirdPartyIds],
-        free: [...freeIds],
-        unmatched: unmatchedIds,
-      },
-      generatedAt: new Date().toISOString(),
-    }),
-  );
 
-  const modelsObj = generateOpencodeModels(entries);
+  console.log(
+    `\nWriting ${MODELS_JSON} with ${artifacts.models.length} models from ${sourceLabel}...`,
+  );
+  writeFileSync(MODELS_JSON, JSON.stringify(artifacts.models, null, 2) + "\n", "utf-8");
+  writeFileSync(VERSION_PATH, `${artifacts.version}\n`, "utf-8");
+  writeManifest(MANIFEST_PATH, artifacts.manifest);
+
+  const modelsObj = generateOpencodeModels(artifacts.models);
 
   if (shouldUpdateGlobal) {
     console.log("Updating global config...");
@@ -263,4 +361,9 @@ async function main() {
   console.log("\nDone.");
 }
 
-main();
+if (import.meta.main) {
+  main().catch((err) => {
+    console.error(err instanceof Error ? err.message : err);
+    process.exit(1);
+  });
+}

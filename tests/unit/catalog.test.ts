@@ -2,10 +2,13 @@ import { expect, test, describe } from "bun:test";
 import {
   buildModelEntry,
   disambiguateModelNames,
+  filterCatalogByAvailability,
   generateOpencodeModels,
   loadCatalogFromBundle,
+  parseAvailabilityIds,
   resolveCommandCodePackage,
   type CostEntry,
+  type ModelEntry,
   type SnEntry,
 } from "../../src/catalog.ts";
 
@@ -335,5 +338,61 @@ describe("resolveCommandCodePackage", () => {
     expect(again).not.toBeNull();
     expect(again!.root).toBe(found.root);
     expect(again!.bundlePath).toBe(found.bundlePath);
+  });
+});
+
+describe("parseAvailabilityIds", () => {
+  const ok = (data: unknown[]) => ({ object: "list", data });
+
+  test("returns ids from a valid list response", () => {
+    expect(parseAvailabilityIds(ok([{ id: "a" }, { id: "b/c" }]))).toEqual(["a", "b/c"]);
+  });
+
+  test("rejects non-2xx-shaped, empty, blank, and duplicate payloads", () => {
+    expect(() => parseAvailabilityIds(null)).toThrow();
+    expect(() => parseAvailabilityIds({ object: "other", data: [{ id: "a" }] })).toThrow();
+    expect(() => parseAvailabilityIds(ok([]))).toThrow();
+    expect(() => parseAvailabilityIds(ok([{ id: "" }]))).toThrow();
+    expect(() => parseAvailabilityIds(ok([{ id: "a" }, { id: "a" }]))).toThrow();
+    expect(() => parseAvailabilityIds(ok([{ nope: 1 }]))).toThrow();
+  });
+});
+
+describe("filterCatalogByAvailability", () => {
+  const entry = (id: string): ModelEntry => ({
+    id,
+    name: id,
+    tier: "open-source",
+    reasoning: false,
+    tool_call: true,
+    cost: { input: 0, output: 0 },
+    limit: { context: 1, output: 1 },
+  });
+
+  test("three candidates with two API ids retain exactly the matches without synthesis", () => {
+    const { retained, unavailable } = filterCatalogByAvailability(
+      [entry("keep-a"), entry("keep-b"), entry("retired")],
+      ["keep-a", "keep-b", "api-only"],
+    );
+    expect(retained.map((e) => e.id)).toEqual(["keep-a", "keep-b"]);
+    expect(unavailable).toEqual(["retired"]);
+    expect(retained.some((e) => e.id === "api-only")).toBe(false);
+  });
+
+  test("matching is exact and case-sensitive", () => {
+    const { retained, unavailable } = filterCatalogByAvailability(
+      [entry("claude-sonnet-4-6"), entry("GPT-5.5"), entry("retired-promo")],
+      ["claude-sonnet-4-6", "gpt-5.5"],
+    );
+    expect(retained.map((e) => e.id)).toEqual(["claude-sonnet-4-6"]);
+    expect(unavailable).toEqual(["GPT-5.5", "retired-promo"]);
+  });
+
+  test("CLI-derived and HARDCODED_EXTRAS candidates pass through the same filter", () => {
+    const { retained } = filterCatalogByAvailability(
+      [entry("Qwen/Qwen3.7-Max"), entry("cli-model")],
+      ["Qwen/Qwen3.7-Max", "cli-model"],
+    );
+    expect(retained.map((e) => e.id).sort()).toEqual(["Qwen/Qwen3.7-Max", "cli-model"]);
   });
 });

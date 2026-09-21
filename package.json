@@ -62,6 +62,7 @@
     "test:integration": "bun test tests/integration/",
     "test:all": "bun test",
     "typecheck": "tsc --noEmit",
+    "prepack": "bun run scripts/verify-manifest-version.ts",
     "verify:release-candidate": "bun run scripts/verify-release-candidate.ts",
     "generate-readme": "bun run scripts/generate-readme.ts",
     "sync": "bun run scripts/sync-models.ts",
