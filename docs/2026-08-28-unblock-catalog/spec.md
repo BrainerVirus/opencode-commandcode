@@ -1,5 +1,6 @@
 # Spec: Unblock Command Code catalog in OpenCode
 
+Status: shipped (0.5.0, 2026-08-28)
 **Branch:** `feature/2026-08-28-unblock-catalog`
 
 Parent specs:
@@ -22,7 +23,7 @@ OpenCode cannot use the Command Code plugin reliably on current `command-code` r
 ## Non-goals
 
 - GitHub Actions catalog-sync workflow and `catalog-break` issues
-- npm rename/publish (`@brainervirus/commandcode-go-opencode-provider`)
+- npm rename/publish (`@brainervirus/opencode-commandcode`)
 - Stable identity keys, alias migration, `(new)` badges
 - Third-party cost API (`COST_ENRICHMENT_API_URL`)
 - Reasoning trace stream adapter
@@ -52,7 +53,9 @@ flowchart TD
   models2 --> cliCosts{CLI costs?}
   cliCosts -->|ok| keep[Keep CLI costs]
   cliCosts -->|fail| docs[Official /models then pricing-limits]
-  docs --> fallback[Hardcoded fallback for unmatched]
+  docs --> free[Free SKUs $0]
+  free --> modelsDev[models.dev reference costs]
+  modelsDev --> fallback[Unmatched placeholder]
   keep --> write[Write models.json + _version.txt]
   fallback --> write
 ```
@@ -77,7 +80,7 @@ OpenCode loading (plugin must not add lines):
 | opt-in local | scrape local CLI only if `commandCodePackagePath` or `COMMANDCODE_PACKAGE_PATH` is set |
 | billed rate | last `$` amount in a docs cell (deal-adjusted) |
 
-Runtime never fetches prices. `bun run sync` fills costs: CLI → official docs (`https://commandcode.ai/models`, then pricing-limits) → hardcoded fallback. Exact id then exact display name.
+Runtime never fetches prices. `bun run sync` fills costs: CLI → official docs (`https://commandcode.ai/models`, then pricing-limits) → free SKUs (`$0`) → models.dev reference → unmatched placeholder. Exact id then exact display name.
 
 ## Acceptance criteria
 
@@ -93,11 +96,16 @@ Runtime never fetches prices. `bun run sync` fills costs: CLI → official docs 
 
 - D-01: Default runtime source is bundled JSON, not local CLI scrape.
 - D-02: Diagnostics go to `~/.local/state/opencode/commandcode-provider/startup.json`.
-- D-03: CI/npm publish and identity aliases wait for later plans.
+- D-03: CI/npm publish shipped later; identity aliases never shipped (see Follow-ups).
 
-## Future work
+## Follow-ups
 
-- CI catalog-sync + `catalog-break` issues
-- npm publish as `@brainervirus/commandcode-go-opencode-provider`
-- Stable model identity / favorites aliases
-- Optional `COST_ENRICHMENT_API_URL`
+Shipped after this spec:
+
+- CI catalog-sync + `catalog-break` issues — see [ci-catalog-automation](../specs/2026-08-28-ci-catalog-automation.md).
+- npm publish as `@brainervirus/commandcode-go-opencode-provider` (0.5.0), renamed to `@brainervirus/opencode-commandcode` (0.6.0).
+
+Not shipped:
+
+- Stable model identity aliases / favorites migration.
+- Optional `COST_ENRICHMENT_API_URL`.

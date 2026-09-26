@@ -1,6 +1,6 @@
 # CI Catalog Automation — Zero Local Command Code
 
-Status: draft (2026-08-28)
+Status: shipped (updated 2026-09-26)
 
 ## Goal
 
@@ -24,13 +24,14 @@ command-code npm publish
         │
         ├─ download tarball
         ├─ extract model catalog (required)
-        ├─ extract costs (CLI, then official docs, then optional API)
-        ├─ write models.json + manifest.json
+        ├─ filter to callable provider-API ids (below floor = broken)
+        ├─ fill costs (CLI → official docs → free SKUs → models.dev → placeholder)
+        ├─ write models.json + _version.txt + manifest.json
         │
-        ├─ SUCCESS ──► bump patch + commit ──► npm publish if NPM_TOKEN set ──► GitHub Release
+        ├─ SUCCESS ──► open fix(catalog) PR ──► auto-merge after checks ──► semantic-release npm publish + GitHub Release
         │
         └─ MODEL FAIL ──► open/update issue (catalog-break) ──► fail workflow
-             COST FAIL only ──► degraded manifest ──► still release (patch)
+             COST GAPS only ──► degraded manifest ──► still release (patch)
 ```
 
 ## Repo Artifacts
@@ -69,7 +70,7 @@ Human- and CI-readable metadata about the bundled catalog. Shipped with the plug
 }
 ```
 
-Write order: bump `package.json` version first, then write `manifest.json` with that `pluginVersion`, then one commit. Do not store `gitCommit` in the file (unknown until after commit; put SHA on the GitHub Release instead).
+Write order: `scripts/sync-models.ts` writes `models.json`, `_version.txt`, then `manifest.json` with the current `package.json` version. Semantic-release rewrites `manifest.pluginVersion` from `nextRelease.version` in its prepare phase before packing. Do not store `gitCommit` in the file (unknown until after commit; put SHA on the GitHub Release instead).
 
 `status` rules:
 - `healthy`: model catalog ok **and** every model has a sourced price (`cli`, `officialDocs`, `thirdParty` / models.dev, or `free`). `unmatched` = 0
@@ -121,31 +122,26 @@ Out of scope: `repository_dispatch` watchers.
 
 Steps:
 1. Read npm `command-code@latest` version.
-2. **Idempotency (do not skip publish retry):**
-   - If `commandCodeVersion` unchanged and `force` is false: skip extraction.
-   - Still run **publish retry** if the current `package.json` version is not on npm (previous job committed but publish failed).
-   - If version unchanged, npm already has that plugin version, and `force` is false: exit.
+2. **Idempotency:** if `commandCodeVersion` is unchanged and `force` is false, skip extraction. Unpublished-plugin-version retries are owned by the release job (`release.yml`), not catalog-sync.
 3. Download tarball (reuse logic from `scripts/sync-models.ts --remote`).
-4. Extract models (required) then run the **cost waterfall**:
-   - model catalog fail → status `broken`, stop (no commit, no publish).
+4. Extract models (required), filter to the provider-API callable ids, then run the **cost waterfall**:
+   - model catalog fail, availability request fail, or filtered count below floor → status `broken`, no artifact writes, no PR.
    - CLI costs fail or partial → continue; fill gaps from official docs, then free SKUs ($0), then models.dev, then unmatched placeholder.
    - Record `costSources` on the manifest. `degraded` only if any model is still unmatched.
 5. Sanity floor: `modelCount >= max(20, floor(lastSuccessfulModelCount * 0.5))`. `lastSuccessfulModelCount` is `modelCount` from the last committed manifest with `status` `healthy` or `degraded`. Fail as `broken` if below. If no prior manifest, use `20`.
-6. Write `models.json`, `_version.txt`, bump patch in `package.json`, write `manifest.json`.
-7. Run unit tests (including 1.38 costless fixture).
+6. Write `models.json`, `_version.txt`, `manifest.json` (semantic-release owns `package.json` versions).
+7. CI on the opened PR runs unit tests (including the 1.38 costless fixture).
 8. If status is `broken`: call issue opener, fail job.
-9. If models changed or command-code version changed:
-   - auto-commit to `main` (catalog + manifest + version only)
-   - npm publish if `NPM_TOKEN` is set; if missing, skip publish and record that in the workflow summary (Phase D not wired)
-   - GitHub Release after successful publish only
+9. If generated catalog files changed: commit to `chore/catalog-sync` as `fix(catalog): sync command-code@X`, open/update the PR to `main`, and queue `gh pr merge --auto --squash --delete-branch`.
 
 Commit strategy (locked):
-- **Auto-commit to `main`** for catalog-only generated files (`models.json`, `manifest.json`, `_version.txt`, `package.json` version).
+- **Bot PR, not direct pushes:** catalog-only generated files (`models.json`, `manifest.json`, `_version.txt`) go to `chore/catalog-sync` with a `fix(catalog)` commit subject, and auto-merge after the required checks.
 - **Human PR required** for any change to `src/`, tests, or workflow files. The catalog workflow must never commit extraction-code changes.
+- Merge to `main` triggers `release.yml` semantic-release (npm publish + tag + GitHub Release).
 
-ponytail: auto-commit is for deterministic generated data only.
+ponytail: auto-merge is for deterministic generated data only.
 
-Workflow permissions: `contents: write`, `issues: write`. If branch protection blocks GITHUB_TOKEN pushes, use a fine-grained PAT stored as `CATALOG_PUSH_TOKEN` — do not fall back to a second “open a PR instead” path in the same workflow.
+Workflow permissions: `contents: write`, `issues: write`, `pull-requests: write`. PRs are opened with `RELEASE_SYNC_TOKEN` (PAT) so GitHub starts CI on the branch; `GITHUB_TOKEN`-opened PRs do not trigger workflows. `CATALOG_PUSH_TOKEN` remains a fallback secret name.
 
 ### 2. `catalog-break-issue.yml` (called from sync on failure)
 
@@ -180,14 +176,12 @@ When a subsequent sync succeeds after manual fix:
 Published npm name (locked, same account as workit: `brainervirus`):
 
 ```json
-"plugin": ["@brainervirus/commandcode-go-opencode-provider@latest"]
+"plugin": ["@brainervirus/opencode-commandcode@latest"]
 ```
 
-`package.json` `name` becomes `@brainervirus/commandcode-go-opencode-provider` with `publishConfig.access: "public"`. This stays its own repo; it is not folded into `workflow-toolkit`.
+`package.json` `name` is `@brainervirus/opencode-commandcode` with `publishConfig.access: "public"` (published as `@brainervirus/commandcode-go-opencode-provider` before the 0.6.0 rename). This stays its own repo; it is not folded into `workflow-toolkit`.
 
-Until Phase D (`NPM_TOKEN` GitHub secret — local `npm whoami` is not enough for Actions):
-- maintainer install stays `file://.../plugin.ts`
-- `file://` is **not** auto-updated by CI; catalog changes require `git pull` of this repo
+`file://` installs are **not** auto-updated by CI; catalog changes require `git pull` of this repo. npm installs update through `@latest`.
 
 ## Runtime Plugin Changes
 
@@ -198,9 +192,8 @@ Align runtime with CI-first model (no local command-code required):
 1. **Bundled `models.json`** from the installed plugin (npm package or `file://` checkout). Default. Always available if the install is intact.
 2. Last-good cache file (identity spec) — only if bundled file is missing/corrupt.
 3. Optional local `command-code` override when `commandCodePackagePath` or `COMMANDCODE_PACKAGE_PATH` is set — maintainers only.
-4. Optional Provider API merge for context lengths (existing).
 
-Local `command-code` is not scraped at startup unless the override is set. CI keeps the committed bundle current.
+Runtime never calls the provider API or fetches prices; freshness is delivered by the catalog pipeline (availability filtering happens in sync). Local `command-code` is not scraped at startup unless the override is set. CI keeps the committed bundle current.
 
 ### Startup behavior
 
@@ -211,15 +204,13 @@ Local `command-code` is not scraped at startup unless the override is set. CI ke
   - report `degraded` if manifest status is `degraded`
 - Auth/connect registers regardless of catalog state.
 
-### Version nudge (optional, non-blocking)
+### Not shipped
 
-Compare the **installed plugin npm version** to that package’s npm `latest` (not `command-code@latest`). If behind, one diagnostics hint: update the plugin package.
-
-Do not compare against `command-code` itself: a catalog-break means command-code moved and the plugin correctly did not ship — that must not look like “plugin update available”. `file://` installs skip the npm version nudge.
+An optional update-available nudge (installed plugin version vs npm `latest`) was specified but never implemented; catalog freshness reaches users through plugin updates instead.
 
 ## Extraction Code Requirements (prerequisite)
 
-Phase 1 from identity spec must land before CI automation is reliable:
+Phase 1 from the identity spec landed first; CI automation depends on it:
 
 1. Split `loadCatalogFromBundle`: model required, cost optional.
 2. `loadCatalogFromLocalCommandCode` must not return null on cost-only failure.
@@ -254,16 +245,17 @@ Commit **extracted snapshots** (model JSON + expected counts/errors), not the pr
 
 | Secret | Purpose |
 |---|---|
-| `NPM_TOKEN` | publish plugin package (`brainervirus`) |
-| `GITHUB_TOKEN` | commit, release, issues |
-| `CATALOG_PUSH_TOKEN` | optional; only if branch protection blocks `GITHUB_TOKEN` |
+| `NPMJS` | npm **Automation** token, mapped to `NPM_TOKEN` and `NODE_AUTH_TOKEN`; publishes the plugin package (`brainervirus`) |
+| `RELEASE_SYNC_TOKEN` | PAT; opens bot PRs so CI runs on the branch, and pushes the post-release sync branch |
+| `CATALOG_PUSH_TOKEN` | optional fallback for `RELEASE_SYNC_TOKEN` |
+| `GITHUB_TOKEN` | workflow default; alone it cannot start CI on bot-opened PRs |
 
-If `main` is protected against `GITHUB_TOKEN`, set `CATALOG_PUSH_TOKEN`. One push path only.
+One PR path only.
 
 ## Acceptance Criteria
 
 - User can run OpenCode with **no** global/local `command-code` install and get current models from the installed plugin (npm package, or a `file://` checkout that has been synced).
-- Within 6 hours of a new `command-code` npm release, CI either commits a catalog update (and publishes a plugin patch if `NPM_TOKEN` is set) or opens/updates a `catalog-break` issue.
+- Within 6 hours of a new `command-code` npm release, CI either opens a `fix(catalog)` PR (a patch publishes after it auto-merges) or opens/updates a `catalog-break` issue.
 - Cost-only CLI regressions (like 1.38) still ship a catalog. Costs come from official docs, then free SKUs ($0), then models.dev; `degraded` only if models remain unmatched.
 - Successful sync never requires local `bun run sync` from the user.
 - Failed model extraction never publishes a misleading npm release.
@@ -284,7 +276,7 @@ Same sequence as the identity spec. Phase 1 (A) must refresh `models.json` befor
 
 1. `manifest.json` schema + writer in `scripts/sync-models.ts`.
 2. Official-docs cost parser (`/models`, then pricing-limits page).
-3. `.github/workflows/catalog-sync.yml` (extract, cost waterfall, commit, issues). Skip npm publish when `NPM_TOKEN` unset.
+3. `.github/workflows/catalog-sync.yml` (extract, availability filter, cost waterfall, `fix(catalog)` PR + auto-merge, issues). Publishing is owned by `release.yml` after merge.
 4. Issue template + opener; auto-close `catalog-break` on later success.
 
 ### Phase C — runtime diagnostics from manifest
@@ -294,10 +286,10 @@ Same sequence as the identity spec. Phase 1 (A) must refresh `models.json` befor
 
 ### Phase D — npm publish wiring
 
-1. Rename package to `@brainervirus/commandcode-go-opencode-provider`.
+1. Rename package to `@brainervirus/commandcode-go-opencode-provider` (shipped at 0.5.0; renamed to `@brainervirus/opencode-commandcode` at 0.6.0).
 2. Store `NPM_TOKEN` (npm user `brainervirus`) as a GitHub Actions secret; `publishConfig.access: public`.
 3. Enable publish + GitHub Release in the workflow.
-4. Document `"plugin": ["@brainervirus/commandcode-go-opencode-provider@latest"]` vs pin.
+4. Document `"plugin": ["@brainervirus/opencode-commandcode@latest"]` vs pin.
 
 ## Plan decomposition
 
@@ -305,8 +297,8 @@ When writing implementation plans, split so each plan ships something usable:
 
 1. **Unblock** — identity Phase 1 / CI Phase A (OpenCode works on current Command Code without the CLI).
 2. **Watch + notify** — CI Phases B–C (cron, issues; works without npm).
-3. **Identity** — identity Phases 2–3 (favorites, reasoning flags). Independent of CI after the bundle exists.
-4. **Publish** — CI Phase D (`@brainervirus/commandcode-go-opencode-provider` + `NPM_TOKEN` on the GitHub repo). Local `npm whoami` does not publish from Actions.
+3. **Identity** — reasoning flags shipped; favorites/alias migration and `(new)` badges did not (see identity spec non-goals). Independent of CI after the bundle exists.
+4. **Publish** — CI Phase D (`@brainervirus/commandcode-go-opencode-provider` + `NPMJS` secret on the GitHub repo). Local `npm whoami` does not publish from Actions. The package was renamed to `@brainervirus/opencode-commandcode` at 0.6.0.
 
 Do not block Plan 1 on npm publishing.
 
@@ -314,11 +306,10 @@ Do not block Plan 1 on npm publishing.
 
 | Risk | Mitigation |
 |---|---|
-| CI auto-commit noise | skip extraction when tarball version unchanged |
-| npm publish failure after commit | next cron retries publish for unpublished `package.json` version; tag/Release only after publish succeeds |
+| Bot PR noise | skip extraction when tarball version unchanged |
+| npm publish failure after merge | release job retries unpublished plugin versions; tag/Release only after publish succeeds |
 | Extraction anchors break silently | relative model-count floor + catalog-break issue |
 | User on `file://` | CI cannot update that checkout; README says git pull or switch to npm |
-| Wrong “update available” hint | nudge compares plugin npm version, not `command-code@latest` |
 
 ## Related Specs
 

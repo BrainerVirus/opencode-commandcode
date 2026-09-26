@@ -1,6 +1,6 @@
 # Auto-merge catalog and manifest sync PRs
 
-Status: approved (2026-08-28)
+Status: shipped (0.7.1, 2026-08-29)
 **Branch:** `feature/2026-08-28-auto-merge-sync-prs`
 
 ## Goal
