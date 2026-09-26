@@ -16,6 +16,12 @@ import { ManifestSchema, ModelEntrySchema, PluginFileConfigSchema } from "./src/
 
 const { models: MODELS_PATH, manifest: MANIFEST_PATH, version: VERSION_PATH } = catalogPaths();
 
+// Transport decision (docs/2026-08-28-ci-catalog/spec.md:20): OpenAI-compatible AI SDK +
+// Provider API; this package is the plugin, never the SDK `npm` field. V1 takes the bare
+// npm name; the `aisdk:` prefix is V2-only.
+const PROVIDER_SDK_NPM = "@ai-sdk/openai-compatible";
+const PROVIDER_API_BASE_URL = "https://api.commandcode.ai/provider/v1";
+
 type PluginFileConfig = z.infer<typeof PluginFileConfigSchema>;
 
 function loadPluginConfig(deps: EnvDeps = liveEnv): PluginFileConfig {
@@ -233,9 +239,19 @@ export async function server() {
       const pluginCfg = loadPluginConfig();
       const debug = pluginCfg.debugStartupLogs === true;
 
-      if (!cc.npm) cc.npm = "commandcode-go-opencode-provider";
+      if (!cc.npm) cc.npm = PROVIDER_SDK_NPM;
       if (!cc.name) cc.name = "Command Code";
       if (!cc.env) cc.env = ["COMMANDCODE_API_KEY"];
+      // V1 resolves `npm` through BunProc.install and calls the first `create*` export, so
+      // the SDK package must be the OpenAI-compatible one; give it the Provider API URL
+      // unless the user already configured another baseURL (custom npm stays untouched).
+      if (cc.npm === PROVIDER_SDK_NPM) {
+        if (cc.options === undefined) cc.options = {};
+        if (typeof cc.options === "object" && cc.options !== null) {
+          const options = cc.options as Record<string, unknown>;
+          if (!options.baseURL) options.baseURL = PROVIDER_API_BASE_URL;
+        }
+      }
 
       if (cc.models) return;
 
@@ -289,9 +305,9 @@ async function setup(ctx: any): Promise<void> {
           id: "commandcode",
           name: "Command Code",
           activation: "enabled",
-          package: "aisdk:@ai-sdk/openai-compatible",
+          package: `aisdk:${PROVIDER_SDK_NPM}`,
           settings: {
-            baseURL: "https://api.commandcode.ai/provider/v1",
+            baseURL: PROVIDER_API_BASE_URL,
             apiKey: "{env:COMMANDCODE_API_KEY}",
           },
         },
@@ -303,8 +319,7 @@ async function setup(ctx: any): Promise<void> {
       provider.name = provider.name ?? "Command Code";
       provider.settings = provider.settings ?? {};
       if (typeof provider.settings === "object") {
-        if (!provider.settings.baseURL)
-          provider.settings.baseURL = "https://api.commandcode.ai/provider/v1";
+        if (!provider.settings.baseURL) provider.settings.baseURL = PROVIDER_API_BASE_URL;
         if (!provider.settings.apiKey) provider.settings.apiKey = "{env:COMMANDCODE_API_KEY}";
       }
     });

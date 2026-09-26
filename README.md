@@ -37,25 +37,9 @@ Pin a version instead of `@latest` if you do not want automatic catalog patches.
 
 `file://` checkouts are **not** updated by npm; `git pull` after CI commits, or switch to the npm plugin line.
 
-### 2. Provider transport (Command Code Provider API)
+### 2. No provider block needed
 
-This plugin supplies model metadata. Point OpenCode at Command Code's documented Provider API:
-
-```json
-{
-  "plugin": ["@brainervirus/opencode-commandcode@latest"],
-  "provider": {
-    "commandcode": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "Command Code GOAT",
-      "env": ["COMMANDCODE_API_KEY"],
-      "options": {
-        "baseURL": "https://api.commandcode.ai/provider/v1"
-      }
-    }
-  }
-}
-```
+On OpenCode V2 the plugin registers the `commandcode` provider itself (Provider API base URL plus `COMMANDCODE_API_KEY` binding) and its models. On V1 the `server` hook fills the same `provider.commandcode` defaults — `npm: "@ai-sdk/openai-compatible"` plus the Provider API `baseURL`; the plugin package itself is never the SDK `npm` field. Only add a manual `provider.commandcode` entry if you need non-default transport options.
 
 ### 3. Connect
 
