@@ -86,6 +86,17 @@ describe("analyzeReleaseScope", () => {
     }
   });
 
+  test("package fixes yield a release", () => {
+    const r = repo();
+    r.tag("v0.6.0");
+    try {
+      r.commit("fix: package the built plugin", { "package.json": "{}\n" });
+      expect(analyzeReleaseScope(r.root)).toEqual({ level: "patch" });
+    } finally {
+      r.cleanup();
+    }
+  });
+
   test("catalog file updates still release", () => {
     const r = repo();
     r.tag("v0.6.0");

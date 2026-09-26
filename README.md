@@ -99,7 +99,7 @@ bun run catalog:ci        # entry used by the catalog-sync workflow
 
 Entry points: `plugin.ts` owns all config-hook logic (dual default `{ id, setup }` plus `server`); `index.ts` re-exports the plugin plus the `createCommandCode` SDK factory; `src/entry.ts` is bundle glue for `scripts/build-plugin.ts` only — it produces `dist/plugin.js`.
 
-CI (`.github/workflows/catalog-sync.yml`) opens a `fix(catalog)` PR every 6 hours when Command Code ships a new catalog; if extraction fails it opens a `catalog-break` issue instead. The PR auto-merges after **check (test)**, **check (typecheck)**, **check (lint)**, **check (format)**, and **check (pack)** are green. `.github/workflows/release.yml` then runs **semantic-release** (npm publish + GitHub Release + tag). Do not push to `main`.
+CI (`.github/workflows/catalog-sync.yml`) opens a `fix(catalog)` PR every 6 hours when Command Code ships a new catalog; if extraction fails it opens a `catalog-break` issue instead. The PR auto-merges after **check (test)**, **check (typecheck)**, **check (lint)**, **check (format)**, and **check (pack)** are green. `.github/workflows/release.yml` then runs **semantic-release** (build + verified npm publish + GitHub Release + tag). Do not push to `main`.
 
 The GitHub Actions secret name is `NPMJS`. It is mapped to both `NPM_TOKEN` and `NODE_AUTH_TOKEN`. Use an npm **Automation** token (bypasses 2FA). A login token from `~/.npmrc` fails CI with `EOTP`. Catalog PRs get a real CI run when `RELEASE_SYNC_TOKEN` is a PAT; `GITHUB_TOKEN` can open the PR but GitHub will not start workflows from that event.
 
