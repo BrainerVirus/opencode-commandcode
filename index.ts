@@ -1,6 +1,10 @@
 import { resolveApiKey } from "./src/auth.js";
 import { CommandCodeLanguageModel } from "./src/model.js";
 
+// Re-export the plugin definition so a directory plugin entry (<dir>/index.ts)
+// loads the dual V1+V2 plugin. No cycle: plugin.ts only imports from src/.
+export { default, server } from "./plugin.js";
+
 export interface CommandCodeProviderOptions {
   name?: string;
   apiKey?: string;

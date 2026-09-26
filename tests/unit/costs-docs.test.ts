@@ -1,8 +1,8 @@
 import { expect, test, describe } from "bun:test";
 import { readFileSync } from "fs";
 import { join } from "path";
-import { applyDocCosts, parseModelsTable, parseMoneyCell } from "../../src/costs-docs.ts";
-import type { ModelEntry } from "../../src/catalog.ts";
+import { applyDocCosts, parseModelsTable, parseMoneyCell } from "@/src/costs-docs.ts";
+import type { ModelEntry } from "@/src/catalog.ts";
 
 describe("parseMoneyCell", () => {
   test("reads billed amount when a deal shows two prices", () => {

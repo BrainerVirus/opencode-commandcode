@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "os";
 import { join } from "path";
-import { buildManifest, withPluginVersion } from "../../src/manifest.ts";
+import { buildManifest, withPluginVersion } from "@/src/manifest.ts";
 
 const buildManifestForVersion = (pluginVersion: string) =>
   buildManifest({

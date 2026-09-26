@@ -29,30 +29,34 @@
     "url": "git+https://github.com/BrainerVirus/opencode-commandcode.git"
   },
   "files": [
-    "index.ts",
-    "plugin.ts",
+    "dist/",
     "models.json",
     "manifest.json",
     "_version.txt",
     "README.md",
     "CHANGELOG.md",
+    "index.ts",
+    "plugin.ts",
     "src/"
   ],
   "type": "module",
-  "main": "index.ts",
-  "types": "index.ts",
+  "main": "./dist/plugin.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./index.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/plugin.js"
     },
     "./server": {
-      "import": "./plugin.ts"
+      "types": "./dist/plugin.d.ts",
+      "import": "./dist/plugin.js"
     }
   },
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
+    "build": "bun scripts/build-plugin.ts && bunx tsc -p tsconfig.json --emitDeclarationOnly",
     "lint": "oxlint --deny-warnings src scripts plugin.ts index.ts tests",
     "lint:fix": "oxlint --fix src scripts plugin.ts index.ts tests",
     "format": "oxfmt src scripts plugin.ts index.ts tests package.json tsconfig.json release.config.cjs",

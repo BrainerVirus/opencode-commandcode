@@ -10,7 +10,7 @@ import {
   type CostEntry,
   type ModelEntry,
   type SnEntry,
-} from "../../src/catalog.ts";
+} from "@/src/catalog.ts";
 
 function costMapOf(entries: CostEntry[]): Map<string, CostEntry> {
   const map = new Map<string, CostEntry>();

@@ -3,7 +3,7 @@ import {
   catalogBreakResolvedComment,
   catalogBreakTitle,
   renderCatalogBreakBody,
-} from "../../src/catalog-break.ts";
+} from "@/src/catalog-break.ts";
 
 describe("catalogBreakTitle", () => {
   test("includes the failed command-code version", () => {

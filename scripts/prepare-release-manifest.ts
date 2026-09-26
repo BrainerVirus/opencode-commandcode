@@ -4,7 +4,7 @@
 // untouched; the post-release sync PR commits the stamped versions to main.
 import { existsSync, readFileSync } from "fs";
 import { join } from "path";
-import { withPluginVersion, writeManifest, type CatalogManifest } from "../src/manifest.js";
+import { withPluginVersion, writeManifest, type CatalogManifest } from "@/src/manifest.js";
 
 const ROOT = join(import.meta.dir, "..");
 

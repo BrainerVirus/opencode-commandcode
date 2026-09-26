@@ -1,11 +1,11 @@
 import { expect, test, beforeAll, afterAll } from "bun:test";
-import { CommandCodeLanguageModel } from "../../src/model.js";
+import { CommandCodeLanguageModel } from "@/src/model.js";
 import {
   mockFetchTrack,
   mockFetchError,
   mockFetchStream,
   makeCallOptions,
-} from "../helpers/mocks.js";
+} from "@/tests/helpers/mocks.js";
 
 const MODEL_ID = "test-model";
 const API_KEY = "sk-test-key";

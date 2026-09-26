@@ -1,5 +1,5 @@
 import { expect, test, beforeEach } from "bun:test";
-import { resolveApiKey } from "../../src/auth.js";
+import { resolveApiKey } from "@/src/auth.js";
 
 beforeEach(() => {
   delete process.env.COMMANDCODE_API_KEY;

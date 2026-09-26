@@ -4,7 +4,7 @@ import { join } from "node:path";
 import {
   renderCatalogReleaseNotes,
   type CatalogReleaseInput,
-} from "../../src/catalog-release-notes.ts";
+} from "@/src/catalog-release-notes.ts";
 
 const ROOT = join(import.meta.dir, "../..");
 

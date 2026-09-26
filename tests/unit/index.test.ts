@@ -1,5 +1,5 @@
 import { expect, test, beforeAll, afterAll } from "bun:test";
-import { createCommandCode } from "../../index.js";
+import { createCommandCode } from "@/index.js";
 
 let originalEnv: Record<string, string | undefined> = {};
 beforeAll(() => {

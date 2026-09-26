@@ -8,8 +8,8 @@ import {
   isFreeSku,
   parseModelsDev,
   TEXT_ONLY_MODALITIES,
-} from "../../src/costs-models-dev.ts";
-import type { ModelEntry } from "../../src/catalog.ts";
+} from "@/src/costs-models-dev.ts";
+import type { ModelEntry } from "@/src/catalog.ts";
 
 function model(partial: Partial<ModelEntry> & Pick<ModelEntry, "id" | "name">): ModelEntry {
   return {

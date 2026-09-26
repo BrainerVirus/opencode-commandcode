@@ -1,7 +1,6 @@
 import { readFileSync, existsSync } from "fs";
 import { homedir } from "os";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
+import { join } from "path";
 import {
   generateOpencodeModels,
   loadCatalogFromLocalCommandCode,
@@ -14,11 +13,10 @@ import {
   pluginStateDir,
 } from "./src/startup.js";
 import type { CatalogManifest } from "./src/manifest.js";
+import { generateV2Models } from "./src/v2models.js";
+import { catalogPaths } from "./src/paths.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const MODELS_PATH = join(__dirname, "models.json");
-const VERSION_PATH = join(__dirname, "_version.txt");
-const MANIFEST_PATH = join(__dirname, "manifest.json");
+const { models: MODELS_PATH, manifest: MANIFEST_PATH, version: VERSION_PATH } = catalogPaths();
 
 interface PluginFileConfig {
   disableModelSync?: boolean;
@@ -72,7 +70,94 @@ function readBundledVersion(): string | null {
   }
 }
 
-export default async function commandcodePlugin() {
+type CatalogLoad = {
+  models: ModelEntry[];
+  catalogSource: "bundled" | "cache" | "opt-in-local";
+  commandCodeVersion: string | null;
+  degraded: boolean;
+  degradedReason: string | null;
+};
+
+function loadCatalogEntries(): CatalogLoad {
+  const pluginCfg = loadPluginConfig();
+  const override =
+    pluginCfg.commandCodePackagePath?.trim() || process.env.COMMANDCODE_PACKAGE_PATH?.trim() || "";
+
+  let models: ModelEntry[] = [];
+  let catalogSource: CatalogLoad["catalogSource"] = "bundled";
+  let commandCodeVersion: string | null = null;
+  let degraded = false;
+  let degradedReason: string | null = null;
+
+  if (override) {
+    const localCatalog = loadCatalogFromLocalCommandCode({ packagePath: override });
+    if (localCatalog && localCatalog.models.length > 0) {
+      models = localCatalog.models;
+      catalogSource = "opt-in-local";
+      commandCodeVersion = localCatalog.version;
+    }
+  }
+
+  if (models.length === 0) {
+    const bundled = loadBundledModels();
+    if (bundled) {
+      models = bundled;
+      catalogSource = "bundled";
+      commandCodeVersion = readBundledVersion();
+      const manifest = readBundledManifest();
+      if (manifest?.status === "degraded" || manifest?.status === "broken") {
+        degraded = true;
+        degradedReason =
+          manifest.status === "broken"
+            ? "bundled catalog marked broken"
+            : "bundled catalog has models with no listed price";
+      }
+    } else {
+      const cached = readCatalogCache();
+      if (cached) {
+        models = cached;
+        catalogSource = "cache";
+        degraded = true;
+        degradedReason = "bundled models.json unreadable; using last-good cache";
+      } else {
+        degraded = true;
+        degradedReason = "no bundled catalog and no cache";
+      }
+    }
+  }
+
+  return { models, catalogSource, commandCodeVersion, degraded, degradedReason };
+}
+
+function persistCatalogSideEffects(load: CatalogLoad, debug: boolean): void {
+  if (load.models.length > 0) {
+    try {
+      writeCatalogCache(pluginStateDir(), load.models);
+    } catch {
+      // ignore cache write
+    }
+  }
+
+  const summary = {
+    catalogSource: load.catalogSource,
+    commandCodeVersion: load.commandCodeVersion,
+    modelCount: load.models.length,
+    reasoningModelCount: load.models.filter((m) => m.reasoning).length,
+    degraded: load.degraded,
+    degradedReason: load.degradedReason,
+  };
+  try {
+    writeStartupSummary(pluginStateDir(), summary);
+  } catch {
+    // ignore
+  }
+  if (debug) {
+    console.warn("[commandcode]", JSON.stringify(summary));
+  }
+}
+
+/** V1 entrypoint (OpenCode 1.18.29+ also accepts it via `server`). */
+export async function server() {
   return {
     config: async (config: Record<string, unknown>) => {
       if (!(config as Record<string, unknown>).provider) {
@@ -85,10 +170,6 @@ export default async function commandcodePlugin() {
 
       const pluginCfg = loadPluginConfig();
       const debug = pluginCfg.debugStartupLogs === true;
-      const override =
-        pluginCfg.commandCodePackagePath?.trim() ||
-        process.env.COMMANDCODE_PACKAGE_PATH?.trim() ||
-        "";
 
       if (!cc.npm) cc.npm = "commandcode-go-opencode-provider";
       if (!cc.name) cc.name = "Command Code";
@@ -96,75 +177,9 @@ export default async function commandcodePlugin() {
 
       if (cc.models) return;
 
-      let models: ModelEntry[] = [];
-      let catalogSource: "bundled" | "cache" | "opt-in-local" = "bundled";
-      let commandCodeVersion: string | null = null;
-      let degraded = false;
-      let degradedReason: string | null = null;
-
-      if (override) {
-        const localCatalog = loadCatalogFromLocalCommandCode({ packagePath: override });
-        if (localCatalog && localCatalog.models.length > 0) {
-          models = localCatalog.models;
-          catalogSource = "opt-in-local";
-          commandCodeVersion = localCatalog.version;
-        }
-      }
-
-      if (models.length === 0) {
-        const bundled = loadBundledModels();
-        if (bundled) {
-          models = bundled;
-          catalogSource = "bundled";
-          commandCodeVersion = readBundledVersion();
-          const manifest = readBundledManifest();
-          if (manifest?.status === "degraded" || manifest?.status === "broken") {
-            degraded = true;
-            degradedReason =
-              manifest.status === "broken"
-                ? "bundled catalog marked broken"
-                : "bundled catalog has models with no listed price";
-          }
-        } else {
-          const cached = readCatalogCache();
-          if (cached) {
-            models = cached;
-            catalogSource = "cache";
-            degraded = true;
-            degradedReason = "bundled models.json unreadable; using last-good cache";
-          } else {
-            degraded = true;
-            degradedReason = "no bundled catalog and no cache";
-          }
-        }
-      }
-
-      if (models.length > 0) {
-        try {
-          writeCatalogCache(pluginStateDir(), models);
-        } catch {
-          // ignore cache write
-        }
-      }
-
-      cc.models = generateOpencodeModels(models);
-
-      const summary = {
-        catalogSource,
-        commandCodeVersion,
-        modelCount: models.length,
-        reasoningModelCount: models.filter((m) => m.reasoning).length,
-        degraded,
-        degradedReason,
-      };
-      try {
-        writeStartupSummary(pluginStateDir(), summary);
-      } catch {
-        // ignore
-      }
-      if (debug) {
-        console.warn("[commandcode]", JSON.stringify(summary));
-      }
+      const load = loadCatalogEntries();
+      persistCatalogSideEffects(load, debug);
+      cc.models = generateOpencodeModels(load.models);
     },
 
     auth: {
@@ -195,3 +210,47 @@ export default async function commandcodePlugin() {
     },
   };
 }
+
+/** V2 setup: provider inventory + models through transforms. Auth stays V1-only for now. */
+async function setup(ctx: any): Promise<void> {
+  const pluginCfg = loadPluginConfig();
+  const debug = pluginCfg.debugStartupLogs === true;
+  const load = loadCatalogEntries();
+  persistCatalogSideEffects(load, debug);
+  const v2models = generateV2Models(load.models);
+
+  await ctx.provider.transform((editor: any) => {
+    const existing = editor.get("commandcode");
+    if (!existing) {
+      editor.add({
+        info: {
+          id: "commandcode",
+          name: "Command Code",
+          activation: "enabled",
+          package: "aisdk:@ai-sdk/openai-compatible",
+          settings: {
+            baseURL: "https://api.commandcode.ai/provider/v1",
+            apiKey: "{env:COMMANDCODE_API_KEY}",
+          },
+        },
+        models: v2models,
+      });
+      return;
+    }
+    editor.update("commandcode", (provider: any) => {
+      provider.name = provider.name ?? "Command Code";
+      provider.settings = provider.settings ?? {};
+      if (typeof provider.settings === "object") {
+        if (!provider.settings.baseURL)
+          provider.settings.baseURL = "https://api.commandcode.ai/provider/v1";
+        if (!provider.settings.apiKey) provider.settings.apiKey = "{env:COMMANDCODE_API_KEY}";
+      }
+    });
+    editor.models.set("commandcode", v2models);
+  });
+}
+
+const definition = { id: "commandcode", setup };
+
+// Dual entry: V2 reads default.id/setup, V1 (>=1.18.29) calls default.server().
+export default { ...definition, server };

@@ -13,15 +13,15 @@ import {
   loadCatalogFromLocalCommandCode,
   parseAvailabilityIds,
   type ModelEntry,
-} from "../src/catalog.js";
-import { applyDocCosts, fetchOfficialModelsMarkdown, parseModelsTable } from "../src/costs-docs.js";
+} from "@/src/catalog.js";
+import { applyDocCosts, fetchOfficialModelsMarkdown, parseModelsTable } from "@/src/costs-docs.js";
 import {
   applyFreeCosts,
   applyModelsDevCosts,
   applyModelsDevModalities,
   fetchModelsDevJson,
   parseModelsDev,
-} from "../src/costs-models-dev.js";
+} from "@/src/costs-models-dev.js";
 import {
   buildManifest,
   commandCodeTarballUrl,
@@ -31,7 +31,7 @@ import {
   withUnavailableIds,
   writeManifest,
   type CatalogManifest,
-} from "../src/manifest.js";
+} from "@/src/manifest.js";
 
 export type SyncArtifacts = {
   models: ModelEntry[];
