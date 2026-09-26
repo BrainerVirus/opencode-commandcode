@@ -2,9 +2,9 @@ import { expect, test, describe } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { parseAvailabilityIds } from "../../src/catalog.ts";
-import { buildSyncArtifacts } from "../../scripts/sync-models.ts";
-import { lastSuccessfulModelCount, meetsModelCountFloor } from "../../src/manifest.ts";
+import { parseAvailabilityIds } from "@/src/catalog.ts";
+import { buildSyncArtifacts } from "@/scripts/sync-models.ts";
+import { lastSuccessfulModelCount, meetsModelCountFloor } from "@/src/manifest.ts";
 
 function availabilityResponse(ids: string[]): unknown {
   return { object: "list", data: ids.map((id) => ({ id })) };

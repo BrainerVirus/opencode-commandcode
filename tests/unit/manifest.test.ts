@@ -11,7 +11,7 @@ import {
   withUnavailableIds,
   writeManifest,
   type CostSources,
-} from "../../src/manifest.ts";
+} from "@/src/manifest.ts";
 
 const sources = (partial: Partial<CostSources> = {}): CostSources => ({
   cli: 0,

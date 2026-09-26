@@ -1,5 +1,5 @@
 import { expect, test, describe } from "bun:test";
-import { decideCatalogSync, decidePublish } from "../../src/publish-policy.ts";
+import { decideCatalogSync, decidePublish } from "@/src/publish-policy.ts";
 
 describe("decideCatalogSync", () => {
   test("extracts when force is true even if versions match", () => {

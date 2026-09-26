@@ -8,7 +8,7 @@ import {
   writeCatalogCache,
   writeStartupSummary,
   type ModelEntry,
-} from "../../src/startup.ts";
+} from "@/src/startup.ts";
 
 const sample: ModelEntry[] = [
   {

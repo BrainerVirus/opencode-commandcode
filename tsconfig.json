@@ -10,7 +10,10 @@
     "skipLibCheck": true,
     "types": ["node"],
     "outDir": "dist",
-    "declaration": true
+    "declaration": true,
+    "paths": {
+      "@/*": ["./*"]
+    }
   },
   "include": ["index.ts", "plugin.ts", "src/**/*.ts"],
   "exclude": ["scripts/", "tests/"]

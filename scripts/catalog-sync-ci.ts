@@ -2,8 +2,8 @@
 import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { execSync } from "child_process";
-import { catalogBreakTitle, renderCatalogBreakBody } from "../src/catalog-break.js";
-import { decideCatalogSync } from "../src/publish-policy.js";
+import { catalogBreakTitle, renderCatalogBreakBody } from "@/src/catalog-break.js";
+import { decideCatalogSync } from "@/src/publish-policy.js";
 import { npmLatestVersion, npmPackageVersions } from "./npm-registry.js";
 
 const ROOT = join(import.meta.dir, "..");

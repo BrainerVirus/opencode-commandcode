@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, renameSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { writeCatalogCache, type ModelEntry } from "../../src/startup.ts";
+import { writeCatalogCache, type ModelEntry } from "@/src/startup.ts";
 
 type PluginResult = {
   config: (config: Record<string, unknown>) => Promise<void>;
@@ -22,7 +22,14 @@ type PluginResult = {
   };
 };
 
-type PluginModule = { default: () => Promise<PluginResult> };
+type PluginModule = {
+  server: () => Promise<PluginResult>;
+  default: {
+    id: string;
+    setup: (ctx: unknown) => Promise<unknown>;
+    server: () => Promise<PluginResult>;
+  };
+};
 
 let pluginFn: PluginModule["default"];
 let testStateDir: string;
@@ -56,8 +63,8 @@ beforeAll(async () => {
   testStateDir = mkdtempSync(join(tmpdir(), "cc-plugin-state-"));
   prevStateDir = process.env.COMMANDCODE_PROVIDER_STATE_DIR;
   process.env.COMMANDCODE_PROVIDER_STATE_DIR = testStateDir;
-  const mod = await import("../../plugin.ts");
-  pluginFn = mod.default;
+  const mod = await import("@/plugin.ts");
+  pluginFn = mod.server;
 });
 
 afterAll(() => {

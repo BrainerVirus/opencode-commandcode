@@ -1,5 +1,5 @@
 import { expect, test, describe } from "bun:test";
-import { cutKeepAChangelog } from "../../src/cut-changelog.ts";
+import { cutKeepAChangelog } from "@/src/cut-changelog.ts";
 
 const HEADER = `# Changelog
 

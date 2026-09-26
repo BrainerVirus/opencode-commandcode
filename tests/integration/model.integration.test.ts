@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { CommandCodeLanguageModel } from "../../src/model.js";
+import { CommandCodeLanguageModel } from "@/src/model.js";
 
 const API_KEY = process.env.COMMANDCODE_API_KEY;
 const hasApiKey = !!API_KEY;
