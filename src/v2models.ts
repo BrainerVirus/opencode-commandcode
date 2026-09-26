@@ -29,10 +29,12 @@ function v2Output(entry: ModelEntry): string[] {
 }
 
 export function toV2Model(entry: ModelEntry): V2Model {
+  // UI / OpenCode selection key stays short (commandcode/deepseek-v4.1-flash).
+  // modelID is the Command Code wire id — bare names 400 as unsupported_model.
   const id = toConfigKey(entry.id);
   return {
     id,
-    modelID: id,
+    modelID: entry.id,
     providerID: "commandcode",
     name: entry.name,
     capabilities: {

@@ -73,6 +73,9 @@
     "sync:global": "bun run scripts/sync-models.ts --update-global",
     "catalog:ci": "bun run scripts/catalog-sync-ci.ts"
   },
+  "dependencies": {
+    "zod": "4.6.5"
+  },
   "devDependencies": {
     "@semantic-release/exec": "7.1.0",
     "@semantic-release/github": "12.0.9",

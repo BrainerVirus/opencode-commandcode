@@ -1,4 +1,6 @@
 import { writeFileSync } from "fs";
+import { z } from "zod";
+import { ManifestSchema } from "./schemas.js";
 
 export type CatalogStatus = "healthy" | "degraded" | "broken";
 export type CostCatalogBest = "cli" | "docs" | "thirdParty" | "free" | "fallback" | "missing";
@@ -24,23 +26,7 @@ export type CatalogReview = {
   unavailable?: UnavailableEntry[];
 };
 
-export type CatalogManifest = {
-  schemaVersion: 1;
-  generatedAt: string;
-  pluginVersion: string;
-  commandCodeVersion: string;
-  commandCodeTarball: string;
-  modelCount: number;
-  reasoningModelCount: number;
-  extraction: {
-    modelCatalog: "ok" | "failed";
-    costCatalog: CostCatalogBest;
-    costCatalogError: string | null;
-  };
-  costSources: CostSources;
-  review?: CatalogReview;
-  status: CatalogStatus;
-};
+export type CatalogManifest = z.infer<typeof ManifestSchema>;
 
 export type BuildManifestInput = {
   pluginVersion: string;
@@ -82,7 +68,6 @@ export function bumpPatch(version: string): string {
 
 export function meetsModelCountFloor(modelCount: number, lastSuccessful: number | null): boolean {
   const floor = Math.max(20, Math.floor((lastSuccessful ?? 20) * 0.5));
-  // ponytail: when there is no prior catalog, lastSuccessful is null and the floor is 20
   return modelCount >= (lastSuccessful === null ? 20 : floor);
 }
 
@@ -162,11 +147,4 @@ export function countCostSources(input: {
     else sources.unmatched++;
   }
   return sources;
-}
-
-export function bumpPackageVersionField(pkgJson: string): { json: string; version: string } {
-  const pkg = JSON.parse(pkgJson) as { version: string };
-  const version = bumpPatch(pkg.version);
-  const json = pkgJson.replace(/("version"\s*:\s*")([^"]+)(")/, `$1${version}$3`);
-  return { json, version };
 }

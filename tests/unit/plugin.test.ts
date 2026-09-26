@@ -211,6 +211,22 @@ test("startup summary uses bundled manifest version and status", async () => {
   expect(summary.modelCount).toBeGreaterThan(20);
 });
 
+test("hermetic: loadCatalogEntries with injected env matches the live bundled load", async () => {
+  const mod = await import("@/plugin.ts");
+  const load = mod.loadCatalogEntries({
+    homedir: () => testStateDir,
+    getEnv: () => undefined,
+  });
+  const manifest = JSON.parse(readFileSync(join(repoRoot, "manifest.json"), "utf-8")) as {
+    status: string;
+    commandCodeVersion: string;
+  };
+  expect(load.catalogSource).toBe("bundled");
+  expect(load.commandCodeVersion).toBe(manifest.commandCodeVersion);
+  expect(load.degraded).toBe(manifest.status === "degraded" || manifest.status === "broken");
+  expect(load.models.length).toBeGreaterThan(20);
+});
+
 test("config does not write to stdout or stderr by default", async () => {
   const logs: unknown[][] = [];
   const warns: unknown[][] = [];
