@@ -19,6 +19,10 @@ On 2026-09-02 this repo published **42 accidental npm versions** (0.7.5→0.7.46
 - The intended release path for catalog updates is the automation's `fix(catalog): sync command-code@X` commit (patch). Do not rename it to `chore(catalog)`.
 - `package.json` / `manifest.json` version fields are written by automation only; don't bump them in feature PRs.
 
+## Docs rule — shipped behavior changes touch docs in the same branch
+
+Any branch that changes shipped behavior — `plugin.ts`, `index.ts`, `src/**`, or the sync pipeline in `scripts/sync-models.ts` — must also touch `README.md` or the matching spec under `docs/specs/` in the same branch. Plans and task notes are not committed; specs describe what ships. Verify with `git diff --name-only main...HEAD`: if it lists a behavior path, it must also list `README.md` or a `docs/specs/` file.
+
 ## Catalog extraction (`src/catalog.ts`) — fragile by design
 
 - It slices balanced `{…}` spans around the anchor `SONNET_4_6:{id:"claude-sonnet-4-6"` and evals them with string bindings collected from the 12k chars before the anchor (`extractStringBindings`).
@@ -33,3 +37,11 @@ On 2026-09-02 this repo published **42 accidental npm versions** (0.7.5→0.7.46
 - `main` is protected (5 required checks). Never push to `main` — open a PR and let auto-merge handle it.
 - `workflow_dispatch` always runs a workflow from **`main`**, never a PR head. Dispatching does not test your branch.
 - Secrets: `NPMJS` (npm **Automation** token, mapped to `NPM_TOKEN`/`NODE_AUTH_TOKEN` — a login token fails with `EOTP`), `RELEASE_SYNC_TOKEN` (PAT; PRs opened with `GITHUB_TOKEN` do not trigger CI runs on their branch).
+
+## Runtime weight + validation boundaries (2026-09-26: dist/plugin.js ~708KB after zod)
+
+- `src/schemas.ts` is the single source of truth for `ModelEntry` / `CatalogManifest` shapes. `src/catalog.ts` and `src/manifest.ts` derive them via `z.infer` — never redeclare the shape. Verify: `grep -rn "interface ModelEntry\|type CatalogManifest = {" src` must be empty.
+- zod lives only at validation boundaries (bundled `models.json` / `manifest.json` reads in `plugin.ts`, provider availability payloads, user config files). Hot paths (`src/convert.ts`, `src/stream.ts`, `src/model.ts`, the `generate*` model loops) stay zod-free. Verify: `grep -rn 'from "zod"' src/convert.ts src/stream.ts src/model.ts` must be empty.
+- `dist/plugin.js` budget: ~708KB with zod bundled (was ~45KB type-only). A second runtime dependency requires either `--external` in `scripts/build-plugin.ts` or updating this budget line. Verify: `bun run build && du -h dist/plugin.js`.
+- V1 (`generateOpencodeModels` in `src/catalog.ts`) and V2 (`toV2Model` in `src/v2models.ts`) cost/limit/modality mappings must stay in parity — change one, update the other plus `tests/unit/v2models.test.ts`. UI/map keys use `toConfigKey` in `src/catalog.ts` (do not duplicate it); the Command Code wire id is always catalog `entry.id` (V1 model `id`, V2 `modelID`) — bare short names 400 as unsupported_model.
+- Entry points: `plugin.ts` owns all config-hook logic; `index.ts` re-exports + SDK factory; `src/entry.ts` is bundle glue for `scripts/build-plugin.ts` only. Do not add a fourth entry or duplicate the catalog-load path.

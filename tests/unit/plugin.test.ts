@@ -153,9 +153,15 @@ test("config hook registers provider with npm and models", async () => {
   await plugin.config(config);
 
   const cc = (config.provider as Record<string, Record<string, unknown>>).commandcode;
-  expect(cc.npm).toBe("commandcode-go-opencode-provider");
+  // V1 `npm` is an AI SDK package name (the plugin package is not the SDK; see
+  // docs/2026-08-28-ci-catalog/spec.md:20) and the OpenAI-compatible SDK needs the
+  // Provider API base URL to reach Command Code.
+  expect(cc.npm).toBe("@ai-sdk/openai-compatible");
   expect(cc.name).toBe("Command Code");
   expect(cc.env).toEqual(["COMMANDCODE_API_KEY"]);
+  expect((cc.options as Record<string, unknown>).baseURL).toBe(
+    "https://api.commandcode.ai/provider/v1",
+  );
   expect(cc.models).toBeDefined();
   const models = cc.models as Record<string, unknown>;
   expect(Object.keys(models).length).toBeGreaterThan(0);
@@ -170,6 +176,25 @@ test("config hook does not overwrite existing npm field", async () => {
 
   const cc = (config.provider as Record<string, Record<string, unknown>>).commandcode;
   expect(cc.npm).toBe("custom-package");
+  // Custom transports own their options; the default baseURL only applies to the
+  // OpenAI-compatible SDK path.
+  expect(cc.options).toBeUndefined();
+});
+
+test("config hook does not overwrite existing options baseURL", async () => {
+  const plugin = await pluginFn();
+  const config: Record<string, unknown> = {
+    provider: {
+      commandcode: {
+        npm: "@ai-sdk/openai-compatible",
+        options: { baseURL: "https://proxy.example/v1" },
+      },
+    },
+  };
+  await plugin.config(config);
+
+  const cc = (config.provider as Record<string, Record<string, unknown>>).commandcode;
+  expect((cc.options as Record<string, unknown>).baseURL).toBe("https://proxy.example/v1");
 });
 
 test("config hook does not overwrite existing models", async () => {
@@ -192,7 +217,10 @@ test("config hook creates provider block if missing", async () => {
   expect(config.provider).toBeDefined();
   const cc = (config.provider as Record<string, Record<string, unknown>>).commandcode;
   expect(cc).toBeDefined();
-  expect(cc.npm).toBe("commandcode-go-opencode-provider");
+  expect(cc.npm).toBe("@ai-sdk/openai-compatible");
+  expect((cc.options as Record<string, unknown>).baseURL).toBe(
+    "https://api.commandcode.ai/provider/v1",
+  );
 });
 
 test("startup summary uses bundled manifest version and status", async () => {
@@ -209,6 +237,22 @@ test("startup summary uses bundled manifest version and status", async () => {
   expect(summary.commandCodeVersion).toMatch(/^\d+\.\d+\.\d+/);
   expect(summary.degraded).toBe(manifest.status === "degraded" || manifest.status === "broken");
   expect(summary.modelCount).toBeGreaterThan(20);
+});
+
+test("hermetic: loadCatalogEntries with injected env matches the live bundled load", async () => {
+  const mod = await import("@/plugin.ts");
+  const load = mod.loadCatalogEntries({
+    homedir: () => testStateDir,
+    getEnv: () => undefined,
+  });
+  const manifest = JSON.parse(readFileSync(join(repoRoot, "manifest.json"), "utf-8")) as {
+    status: string;
+    commandCodeVersion: string;
+  };
+  expect(load.catalogSource).toBe("bundled");
+  expect(load.commandCodeVersion).toBe(manifest.commandCodeVersion);
+  expect(load.degraded).toBe(manifest.status === "degraded" || manifest.status === "broken");
+  expect(load.models.length).toBeGreaterThan(20);
 });
 
 test("config does not write to stdout or stderr by default", async () => {
@@ -269,9 +313,12 @@ test("CA-04: registers npm/env with empty models when bundled and cache miss", a
     await plugin.config(config);
 
     const cc = (config.provider as Record<string, Record<string, unknown>>).commandcode;
-    expect(cc.npm).toBe("commandcode-go-opencode-provider");
+    expect(cc.npm).toBe("@ai-sdk/openai-compatible");
     expect(cc.name).toBe("Command Code");
     expect(cc.env).toEqual(["COMMANDCODE_API_KEY"]);
+    expect((cc.options as Record<string, unknown>).baseURL).toBe(
+      "https://api.commandcode.ai/provider/v1",
+    );
     expect(cc.models).toEqual({});
 
     const summary = JSON.parse(readFileSync(join(emptyDir, "startup.json"), "utf-8"));

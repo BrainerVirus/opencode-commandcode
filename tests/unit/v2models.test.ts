@@ -18,7 +18,7 @@ const base: ModelEntry = {
 test("toV2Model maps V1 entry to V2 capabilities/cost/limit", () => {
   const m = toV2Model(base);
   expect(m.id).toBe(toConfigKey(base.id));
-  expect(m.modelID).toBe(toConfigKey(base.id));
+  expect(m.modelID).toBe(base.id);
   expect(m.providerID).toBe("commandcode");
   expect(m.name).toBe(base.name);
   expect(m.capabilities).toEqual({ tools: true, input: ["text", "image"], output: ["text"] });
@@ -30,6 +30,13 @@ test("toV2Model maps V1 entry to V2 capabilities/cost/limit", () => {
   ]);
   expect(m.status).toBe("active");
   expect(m.enabled).toBe(true);
+});
+
+test("toV2Model keeps short UI id and full Command Code wire modelID", () => {
+  const m = toV2Model({ ...base, id: "deepseek/deepseek-v4.1-flash", name: "DeepSeek V4.1 Flash" });
+  expect(m.id).toBe("deepseek-v4.1-flash");
+  expect(m.modelID).toBe("deepseek/deepseek-v4.1-flash");
+  expect(m.name).toBe("DeepSeek V4.1 Flash");
 });
 
 test("toV2Model defaults to text-only when no modality metadata", () => {
@@ -55,4 +62,5 @@ test("generateV2Models maps every entry", () => {
   const out = generateV2Models([base, { ...base, id: "openai/gpt-5.5" }]);
   expect(out.length).toBe(2);
   expect(out.map((m) => m.id)).toEqual(["claude-sonnet-4-6", "gpt-5.5"]);
+  expect(out.map((m) => m.modelID)).toEqual(["anthropic/claude-sonnet-4-6", "openai/gpt-5.5"]);
 });

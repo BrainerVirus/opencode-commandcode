@@ -2,22 +2,14 @@ import { createRequire } from "module";
 import { execSync } from "child_process";
 import { existsSync, readFileSync, statSync } from "fs";
 import { dirname, join, resolve as resolvePath } from "path";
-import { fileURLToPath } from "url";
+import { z } from "zod";
+import { AvailabilityPayloadSchema, ModelEntrySchema } from "./schemas.js";
+import { liveEnv, type EnvDeps } from "./env.js";
+import { causeMessage, errResult, okResult, type LoadResult } from "./load-result.js";
 
 export const NPM_PACKAGE = "command-code";
 
-export interface ModelEntry {
-  id: string;
-  name: string;
-  tier: "premium" | "open-source";
-  reasoning: boolean;
-  reasoningEfforts?: string[];
-  tool_call: boolean;
-  cost: { input: number; output: number; cache_read?: number; cache_write?: number };
-  limit: { context: number; output: number };
-  attachment?: boolean;
-  modalities?: { input: string[]; output: string[] };
-}
+export type ModelEntry = z.infer<typeof ModelEntrySchema>;
 
 export interface CostEntry {
   id: string;
@@ -257,18 +249,6 @@ export function extractBestProviderEnum(
   }
 
   return fallback;
-}
-
-export function extractWt(source: string): Record<string, string> {
-  const best = extractBestProviderEnum(source);
-  if (!best) throw new Error(`Anchor not found: ANTHROPIC:"anthropic"`);
-  return best.value;
-}
-
-export function getWtVarName(source: string): string {
-  const best = extractBestProviderEnum(source);
-  if (!best) throw new Error("Could not find Wt enum");
-  return best.name;
 }
 
 /** Collect nearby `name="value"` bindings and simple aliases (`tI=Qx`). */
@@ -701,17 +681,20 @@ function tryNpmRootGlobal(): ResolvedCommandCodePackage | null {
   }
 }
 
-function tryWindowsAppData(): ResolvedCommandCodePackage | null {
-  const appData = process.env.APPDATA;
+function tryWindowsAppData(deps: EnvDeps = liveEnv): ResolvedCommandCodePackage | null {
+  const appData = deps.getEnv("APPDATA");
   if (!appData) return null;
   return asPackageRoot(join(appData, "npm", "node_modules", NPM_PACKAGE));
 }
 
-export function resolveCommandCodePackage(options?: {
-  packagePath?: string;
-}): ResolvedCommandCodePackage | null {
+export function resolveCommandCodePackage(
+  options?: {
+    packagePath?: string;
+  },
+  deps: EnvDeps = liveEnv,
+): ResolvedCommandCodePackage | null {
   const explicit =
-    options?.packagePath?.trim() || process.env.COMMANDCODE_PACKAGE_PATH?.trim() || "";
+    options?.packagePath?.trim() || deps.getEnv("COMMANDCODE_PACKAGE_PATH")?.trim() || "";
 
   if (explicit) {
     const found = asPackageRoot(explicit);
@@ -722,26 +705,60 @@ export function resolveCommandCodePackage(options?: {
     tryRequireResolve() ||
     walkNodeModules(process.cwd()) ||
     tryNpmRootGlobal() ||
-    tryWindowsAppData() ||
+    tryWindowsAppData(deps) ||
     null
   );
 }
 
-export function loadCatalogFromLocalCommandCode(options?: {
-  packagePath?: string;
-}): LocalCatalogResult | null {
+/**
+ * Explicit local-catalog load: `ok(null)` means no package was found to try
+ * (opt-in unused or undiscoverable — not a failure), `err` carries the
+ * reason an attempted load failed, `ok(result)` is a usable catalog.
+ */
+export function loadCatalogFromLocalCommandCodeResult(
+  options?: {
+    packagePath?: string;
+  },
+  deps: EnvDeps = liveEnv,
+): LoadResult<LocalCatalogResult | null> {
   try {
-    const resolved = resolveCommandCodePackage(options);
-    if (!resolved) return null;
-    const source = readFileSync(resolved.bundlePath, "utf-8");
-    const models = loadCatalogFromBundle(source);
-    if (models.length === 0) return null;
-    return { models, version: resolved.version, root: resolved.root, bundleSource: source };
-  } catch {
-    return null;
+    const resolved = resolveCommandCodePackage(options, deps);
+    if (!resolved) return okResult(null);
+    let source: string;
+    try {
+      source = readFileSync(resolved.bundlePath, "utf-8");
+    } catch (error) {
+      return errResult(
+        `local command-code bundle unreadable (${resolved.bundlePath}): ${causeMessage(error)}`,
+      );
+    }
+    let models: ModelEntry[];
+    try {
+      models = loadCatalogFromBundle(source);
+    } catch (error) {
+      return errResult(`local command-code catalog failed to evaluate: ${causeMessage(error)}`);
+    }
+    if (models.length === 0) return errResult("local command-code catalog empty");
+    return okResult({
+      models,
+      version: resolved.version,
+      root: resolved.root,
+      bundleSource: source,
+    });
+  } catch (error) {
+    return errResult(`local command-code load failed: ${causeMessage(error)}`);
   }
 }
 
+/** Compat wrapper: value-or-null for callers that only need fail-open. */
+export function loadCatalogFromLocalCommandCode(options?: {
+  packagePath?: string;
+}): LocalCatalogResult | null {
+  const result = loadCatalogFromLocalCommandCodeResult(options);
+  return result.ok ? result.value : null;
+}
+
+/** Short OpenCode map / UI key. Wire id stays the catalog `entry.id` (vendor/…). */
 export function toConfigKey(id: string): string {
   const slashIdx = id.indexOf("/");
   const short = slashIdx >= 0 ? id.slice(slashIdx + 1) : id;
@@ -751,6 +768,7 @@ export function toConfigKey(id: string): string {
 export function generateOpencodeModels(entries: ModelEntry[]): Record<string, unknown> {
   const models: Record<string, unknown> = {};
   for (const entry of entries) {
+    // Map key = short UI id; `id` on the model = Command Code wire id (same split as V2 modelID).
     const key = toConfigKey(entry.id);
     const costObj: Record<string, number> = { input: entry.cost.input, output: entry.cost.output };
     if (entry.cost.cache_read !== undefined) costObj.cache_read = entry.cost.cache_read;
@@ -788,36 +806,14 @@ export interface FilteredCatalog<T extends { id: string }> {
   unavailable: string[];
 }
 
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === "string" && value.length > 0;
-}
-
 /** Validate the OpenAI-style `{ object: "list", data: [{ id }] }` availability payload. */
 export function parseAvailabilityIds(payload: unknown): string[] {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    throw new Error("availability response must be an object");
+  const parsed = AvailabilityPayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    const detail = parsed.error.issues.map((issue) => issue.message).join("; ");
+    throw new Error(`invalid availability response: ${detail}`);
   }
-  const body = payload as Record<string, unknown>;
-  if (body["object"] !== "list") throw new Error('availability response object must be "list"');
-  const data = body["data"];
-  if (!Array.isArray(data) || data.length === 0) {
-    throw new Error("availability response data must be a non-empty array");
-  }
-  const ids: string[] = [];
-  const seen = new Set<string>();
-  for (const item of data) {
-    if (!item || typeof item !== "object" || Array.isArray(item)) {
-      throw new Error("availability response items must be objects with a non-empty string id");
-    }
-    const id = (item as Record<string, unknown>)["id"];
-    if (!isNonEmptyString(id)) {
-      throw new Error("availability response items must be objects with a non-empty string id");
-    }
-    if (seen.has(id)) throw new Error(`duplicate availability id: ${id}`);
-    seen.add(id);
-    ids.push(id);
-  }
-  return ids;
+  return parsed.data.data.map((item) => item.id);
 }
 
 /** Retain only candidates whose exact ID is callable; collect sorted excluded IDs. */
@@ -832,8 +828,4 @@ export function filterCatalogByAvailability<T extends { id: string }>(
     .map((entry) => entry.id)
     .sort();
   return { retained, unavailable };
-}
-
-export function catalogModuleDir(): string {
-  return dirname(fileURLToPath(import.meta.url));
 }

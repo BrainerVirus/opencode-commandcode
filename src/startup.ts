@@ -1,7 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
-import { homedir } from "os";
 import { join } from "path";
 import type { ModelEntry } from "./catalog.js";
+import { liveEnv, resolveStateDir, type EnvDeps } from "./env.js";
+import { causeMessage, errResult, okResult, type LoadResult } from "./load-result.js";
 
 export type { ModelEntry } from "./catalog.js";
 
@@ -14,22 +15,35 @@ export type StartupSummary = {
   degradedReason: string | null;
 };
 
-export function pluginStateDir(): string {
-  const override = process.env.COMMANDCODE_PROVIDER_STATE_DIR?.trim();
-  if (override) return override;
-  return join(homedir(), ".local/state/opencode/commandcode-provider");
+export function pluginStateDir(deps: EnvDeps = liveEnv): string {
+  return resolveStateDir(deps);
 }
 
-export function readCatalogCache(dir = pluginStateDir()): ModelEntry[] | null {
-  const path = join(dir, "catalog-cache.json");
-  if (!existsSync(path)) return null;
+/**
+ * Explicit cache read: hit yields the models, anything else yields the
+ * reason (missing file, empty/invalid content, unreadable JSON).
+ */
+export function readCatalogCacheResult(
+  dir?: string,
+  deps: EnvDeps = liveEnv,
+): LoadResult<ModelEntry[]> {
+  const cacheDir = dir ?? resolveStateDir(deps);
+  const path = join(cacheDir, "catalog-cache.json");
+  if (!existsSync(path)) return errResult("catalog cache missing");
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(readFileSync(path, "utf-8")) as unknown;
-    if (!Array.isArray(parsed) || parsed.length === 0) return null;
-    return parsed as ModelEntry[];
-  } catch {
-    return null;
+    parsed = JSON.parse(readFileSync(path, "utf-8")) as unknown;
+  } catch (error) {
+    return errResult(`catalog cache unreadable: ${causeMessage(error)}`);
   }
+  if (!Array.isArray(parsed) || parsed.length === 0) return errResult("catalog cache empty");
+  return okResult(parsed as ModelEntry[]);
+}
+
+/** Compat wrapper: explicit-dir callers that only need value-or-null. */
+export function readCatalogCache(dir?: string, deps: EnvDeps = liveEnv): ModelEntry[] | null {
+  const result = readCatalogCacheResult(dir, deps);
+  return result.ok ? result.value : null;
 }
 
 export function writeCatalogCache(dir: string, models: ModelEntry[]): void {

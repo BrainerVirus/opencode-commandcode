@@ -65,6 +65,10 @@ test("V2 setup adds provider with models when missing", async () => {
   expect(sample.providerID).toBe("commandcode");
   expect(sample.capabilities.input).toContain("text");
   expect(sample.cost[0].cache).toHaveProperty("read");
+  const deepseek = added.models.find((m: { id: string }) => m.id === "deepseek-v4.1-flash");
+  expect(deepseek).toBeDefined();
+  expect(deepseek.modelID).toBe("deepseek/deepseek-v4.1-flash");
+  expect(deepseek.id).toBe("deepseek-v4.1-flash");
 });
 
 test("V2 setup preserves existing package and sets models", async () => {

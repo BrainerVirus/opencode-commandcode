@@ -1,14 +1,16 @@
 import { expect, test, describe } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync } from "fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import {
   pluginStateDir,
   readCatalogCache,
+  readCatalogCacheResult,
   writeCatalogCache,
   writeStartupSummary,
   type ModelEntry,
 } from "@/src/startup.ts";
+import type { EnvDeps } from "@/src/env.ts";
 
 const sample: ModelEntry[] = [
   {
@@ -22,23 +24,29 @@ const sample: ModelEntry[] = [
   },
 ];
 
+/** Injected env: no process.env reads, no homedir touches. */
+const fakeEnv = (overrides: Record<string, string> = {}): EnvDeps => ({
+  homedir: () => "/fake/home",
+  getEnv: (key) => overrides[key],
+});
+
 describe("pluginStateDir", () => {
-  test("honors COMMANDCODE_PROVIDER_STATE_DIR when set", () => {
+  test("defaults under the injected homedir", () => {
+    expect(pluginStateDir(fakeEnv())).toBe("/fake/home/.local/state/opencode/commandcode-provider");
+  });
+
+  test("honors the injected COMMANDCODE_PROVIDER_STATE_DIR", () => {
     const dir = mkdtempSync(join(tmpdir(), "cc-state-"));
-    const prev = process.env.COMMANDCODE_PROVIDER_STATE_DIR;
-    process.env.COMMANDCODE_PROVIDER_STATE_DIR = dir;
     try {
-      expect(pluginStateDir()).toBe(dir);
+      expect(pluginStateDir(fakeEnv({ COMMANDCODE_PROVIDER_STATE_DIR: dir }))).toBe(dir);
     } finally {
-      if (prev === undefined) delete process.env.COMMANDCODE_PROVIDER_STATE_DIR;
-      else process.env.COMMANDCODE_PROVIDER_STATE_DIR = prev;
       rmSync(dir, { recursive: true, force: true });
     }
   });
 });
 
 describe("catalog cache", () => {
-  test("round-trips models and returns null for missing file", () => {
+  test("round-trips models and returns null for missing file (compat wrapper)", () => {
     const dir = mkdtempSync(join(tmpdir(), "cc-cache-"));
     try {
       expect(readCatalogCache(dir)).toBeNull();
@@ -47,6 +55,51 @@ describe("catalog cache", () => {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+
+  test("Result reports a missing cache with a reason", () => {
+    const dir = mkdtempSync(join(tmpdir(), "cc-cache-miss-"));
+    try {
+      const result = readCatalogCacheResult(dir, fakeEnv());
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.reason).toContain("missing");
+      else throw new Error("unreachable");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("Result reports a corrupt cache with a reason", () => {
+    const dir = mkdtempSync(join(tmpdir(), "cc-cache-bad-"));
+    try {
+      writeFileSync(join(dir, "catalog-cache.json"), "{not json", "utf-8");
+      const result = readCatalogCacheResult(dir, fakeEnv());
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.reason).toContain("unreadable");
+      else throw new Error("unreachable");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("Result reports an empty cache with a reason", () => {
+    const dir = mkdtempSync(join(tmpdir(), "cc-cache-empty-"));
+    try {
+      writeFileSync(join(dir, "catalog-cache.json"), "[]", "utf-8");
+      const result = readCatalogCacheResult(dir, fakeEnv());
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.reason).toContain("empty");
+      else throw new Error("unreachable");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("Result resolves the default dir from injected deps", () => {
+    // /fake/home does not exist: proves the default dir came from the fake,
+    // with no process.env involvement.
+    const result = readCatalogCacheResult(undefined, fakeEnv());
+    expect(result.ok).toBe(false);
   });
 });
 

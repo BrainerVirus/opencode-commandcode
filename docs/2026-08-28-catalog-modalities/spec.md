@@ -1,6 +1,6 @@
 # Spec: Catalog modalities from Command Code CLI
 
-Status: approved (2026-08-28)
+Status: shipped (0.7.0, 2026-08-28)
 **Branch:** `feature/2026-08-28-catalog-modalities`
 
 Parent: [docs/2026-08-28-ci-catalog/spec.md](../2026-08-28-ci-catalog/spec.md)

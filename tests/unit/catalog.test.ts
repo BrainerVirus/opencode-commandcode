@@ -1,16 +1,21 @@
 import { expect, test, describe } from "bun:test";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 import {
   buildModelEntry,
   disambiguateModelNames,
   filterCatalogByAvailability,
   generateOpencodeModels,
   loadCatalogFromBundle,
+  loadCatalogFromLocalCommandCodeResult,
   parseAvailabilityIds,
   resolveCommandCodePackage,
   type CostEntry,
   type ModelEntry,
   type SnEntry,
 } from "@/src/catalog.ts";
+import type { EnvDeps } from "@/src/env.ts";
 
 function costMapOf(entries: CostEntry[]): Map<string, CostEntry> {
   const map = new Map<string, CostEntry>();
@@ -197,6 +202,24 @@ describe("generateOpencodeModels", () => {
     });
   });
 
+  test("keeps short map key and full Command Code wire id", () => {
+    const models = generateOpencodeModels([
+      {
+        id: "deepseek/deepseek-v4.1-flash",
+        name: "DeepSeek V4.1 Flash",
+        tier: "open-source",
+        reasoning: true,
+        tool_call: true,
+        cost: { input: 0.15, output: 0.6 },
+        limit: { context: 1000000, output: 65536 },
+      },
+    ]);
+    expect(Object.keys(models)).toEqual(["deepseek-v4.1-flash"]);
+    const entry = models["deepseek-v4.1-flash"] as Record<string, unknown>;
+    expect(entry.id).toBe("deepseek/deepseek-v4.1-flash");
+    expect(entry.name).toBe("DeepSeek V4.1 Flash");
+  });
+
   test("emits attachment and modalities, defaulting to text-only", () => {
     const models = generateOpencodeModels([
       {
@@ -355,6 +378,55 @@ describe("parseAvailabilityIds", () => {
     expect(() => parseAvailabilityIds(ok([{ id: "" }]))).toThrow();
     expect(() => parseAvailabilityIds(ok([{ id: "a" }, { id: "a" }]))).toThrow();
     expect(() => parseAvailabilityIds(ok([{ nope: 1 }]))).toThrow();
+  });
+});
+
+describe("loadCatalogFromLocalCommandCodeResult", () => {
+  const noEnv: EnvDeps = { homedir: () => "/fake/home", getEnv: () => undefined };
+  // Self-contained bundle fixture (mirrors the cost-failure shape above):
+  // two modelish entries so isModelCatalog accepts it.
+  const bundleSource = [
+    '(Wt={ANTHROPIC:"anthropic",OPENAI:"openai",VERCEL_AI_GATEWAY:"vercel-ai-gateway"});',
+    'var Aa="chatComplete",Ba="responses",qt=Vt[0];',
+    "var Sn=(Wt=>({",
+    'SONNET_4_6:{id:"claude-sonnet-4-6",provider:Wt.ANTHROPIC,spec:Aa,label:"Sonnet",name:"Claude Sonnet 4.6",description:"d",inputModalities:["text","image"],reasoning:!0,reasoningEfforts:["low"],contextWindow:2e5},',
+    'GPT_X:{id:"gpt-5.5",provider:Wt.OPENAI,spec:Ba,label:"GPT",name:"GPT-5.5",description:"d",inputModalities:["text"],contextWindow:256000}',
+    "}))(Wt);",
+  ].join("");
+
+  test("ok with models for a fabricated package (explicit path, no env)", () => {
+    const root = mkdtempSync(join(tmpdir(), "cc-local-ok-"));
+    try {
+      writeFileSync(
+        join(root, "package.json"),
+        JSON.stringify({ name: "command-code", version: "9.9.9" }),
+        "utf-8",
+      );
+      mkdirSync(join(root, "dist"), { recursive: true });
+      // Bundle picker skips stubs under 4KB — pad the fixture past that.
+      writeFileSync(join(root, "dist", "cli.mjs"), `${bundleSource}\n${" ".repeat(5000)}`, "utf-8");
+      const result = loadCatalogFromLocalCommandCodeResult({ packagePath: root }, noEnv);
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error("unreachable");
+      expect(result.value?.version).toBe("9.9.9");
+      expect(result.value?.models.length).toBeGreaterThan(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test("err with a reason for an unevaluatable bundle file", () => {
+    const dir = mkdtempSync(join(tmpdir(), "cc-local-bad-"));
+    try {
+      const file = join(dir, "bundle.mjs");
+      writeFileSync(file, `not a bundle {{{${" ".repeat(5000)}`, "utf-8");
+      const result = loadCatalogFromLocalCommandCodeResult({ packagePath: file }, noEnv);
+      expect(result.ok).toBe(false);
+      if (result.ok) throw new Error("unreachable");
+      expect(result.reason).toContain("local command-code");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 

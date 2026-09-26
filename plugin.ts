@@ -1,76 +1,112 @@
 import { readFileSync, existsSync } from "fs";
-import { homedir } from "os";
 import { join } from "path";
+import { z } from "zod";
 import {
   generateOpencodeModels,
-  loadCatalogFromLocalCommandCode,
+  loadCatalogFromLocalCommandCodeResult,
   type ModelEntry,
 } from "./src/catalog.js";
-import {
-  readCatalogCache,
-  writeCatalogCache,
-  writeStartupSummary,
-  pluginStateDir,
-} from "./src/startup.js";
+import { readCatalogCacheResult, writeCatalogCache, writeStartupSummary } from "./src/startup.js";
+import { liveEnv, resolveStateDir, type EnvDeps } from "./src/env.js";
+import { causeMessage, errResult, okResult, type LoadResult } from "./src/load-result.js";
 import type { CatalogManifest } from "./src/manifest.js";
 import { generateV2Models } from "./src/v2models.js";
 import { catalogPaths } from "./src/paths.js";
+import { ManifestSchema, ModelEntrySchema, PluginFileConfigSchema } from "./src/schemas.js";
 
 const { models: MODELS_PATH, manifest: MANIFEST_PATH, version: VERSION_PATH } = catalogPaths();
 
-interface PluginFileConfig {
-  disableModelSync?: boolean;
-  commandCodePackagePath?: string;
-  debugStartupLogs?: boolean;
-}
+// Transport decision (docs/2026-08-28-ci-catalog/spec.md:20): OpenAI-compatible AI SDK +
+// Provider API; this package is the plugin, never the SDK `npm` field. V1 takes the bare
+// npm name; the `aisdk:` prefix is V2-only.
+const PROVIDER_SDK_NPM = "@ai-sdk/openai-compatible";
+const PROVIDER_API_BASE_URL = "https://api.commandcode.ai/provider/v1";
 
-function loadPluginConfig(): PluginFileConfig {
-  const dir = join(homedir(), ".config", "opencode");
+type PluginFileConfig = z.infer<typeof PluginFileConfigSchema>;
+
+function loadPluginConfig(deps: EnvDeps = liveEnv): PluginFileConfig {
+  const dir = join(deps.homedir(), ".config", "opencode");
   const configPath = [
     join(dir, "opencode-commandcode.json"),
     join(dir, "commandcode-go-opencode-provider.json"),
   ].find((p) => existsSync(p));
-  if (!configPath) return {};
+  if (!configPath) return PluginFileConfigSchema.parse({});
+  let raw: unknown = {};
   try {
-    return JSON.parse(readFileSync(configPath, "utf-8"));
+    raw = JSON.parse(readFileSync(configPath, "utf-8")) as unknown;
   } catch {
-    return {};
+    raw = {};
   }
+  const parsed = PluginFileConfigSchema.safeParse(raw);
+  return parsed.success ? parsed.data : PluginFileConfigSchema.parse({});
 }
 
 export type { ModelEntry };
 
-function loadBundledModels(): ModelEntry[] | null {
+type BundledModels = { models: ModelEntry[]; dropped: number; dropReasons: string[] };
+
+/** Explicit bundled read: parsed models plus the reason when unavailable. */
+function loadBundledModels(): LoadResult<BundledModels> {
+  let raw: string;
   try {
-    return JSON.parse(readFileSync(MODELS_PATH, "utf-8"));
-  } catch {
-    return null;
+    raw = readFileSync(MODELS_PATH, "utf-8");
+  } catch (error) {
+    return errResult(`bundled models.json unreadable: ${causeMessage(error)}`);
   }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw) as unknown;
+  } catch (error) {
+    return errResult(`bundled models.json invalid JSON: ${causeMessage(error)}`);
+  }
+  if (!Array.isArray(parsed)) return errResult("bundled models.json is not an array");
+  const models: ModelEntry[] = [];
+  const dropReasons: string[] = [];
+  for (let index = 0; index < parsed.length; index++) {
+    const result = ModelEntrySchema.safeParse(parsed[index]);
+    if (result.success) models.push(result.data);
+    else if (dropReasons.length < 3) {
+      const detail = result.error.issues.map((issue) => issue.message).join("; ");
+      dropReasons.push(`entry ${index}: ${detail}`);
+    }
+  }
+  return okResult({ models, dropped: parsed.length - models.length, dropReasons });
 }
 
-function readBundledManifest(): CatalogManifest | null {
-  if (!existsSync(MANIFEST_PATH)) return null;
+/** Explicit manifest read: `ok(null)` is a missing file (version falls back). */
+function readBundledManifest(): LoadResult<CatalogManifest | null> {
+  if (!existsSync(MANIFEST_PATH)) return okResult(null);
+  let parsed: unknown;
   try {
-    return JSON.parse(readFileSync(MANIFEST_PATH, "utf-8")) as CatalogManifest;
-  } catch {
-    return null;
+    parsed = JSON.parse(readFileSync(MANIFEST_PATH, "utf-8")) as unknown;
+  } catch (error) {
+    return errResult(`bundled manifest.json unreadable: ${causeMessage(error)}`);
   }
+  const result = ManifestSchema.safeParse(parsed);
+  if (!result.success) {
+    const detail = result.error.issues.map((issue) => issue.message).join("; ");
+    return errResult(`bundled manifest.json invalid: ${detail}`);
+  }
+  return okResult(result.data);
 }
 
-function readBundledVersion(): string | null {
+/** Explicit version read: manifest first, `_version.txt` fallback, else a reason. */
+function readBundledVersion(): LoadResult<string | null> {
   const manifest = readBundledManifest();
-  if (manifest?.commandCodeVersion) return manifest.commandCodeVersion;
-  if (!existsSync(VERSION_PATH)) return null;
+  if (manifest.ok && manifest.value?.commandCodeVersion) {
+    return okResult(manifest.value.commandCodeVersion);
+  }
+  if (!existsSync(VERSION_PATH)) return errResult("version file missing");
   try {
-    const parts = readFileSync(VERSION_PATH, "utf-8").split("\n");
-    const first = parts[0]?.trim();
-    return first || null;
-  } catch {
-    return null;
+    const first = readFileSync(VERSION_PATH, "utf-8").split("\n")[0]?.trim();
+    if (!first) return errResult("version file empty");
+    return okResult(first);
+  } catch (error) {
+    return errResult(`version file unreadable: ${causeMessage(error)}`);
   }
 }
 
-type CatalogLoad = {
+export type CatalogLoad = {
   models: ModelEntry[];
   catalogSource: "bundled" | "cache" | "opt-in-local";
   commandCodeVersion: string | null;
@@ -78,61 +114,93 @@ type CatalogLoad = {
   degradedReason: string | null;
 };
 
-function loadCatalogEntries(): CatalogLoad {
-  const pluginCfg = loadPluginConfig();
+export function loadCatalogEntries(deps: EnvDeps = liveEnv): CatalogLoad {
+  const pluginCfg = loadPluginConfig(deps);
   const override =
-    pluginCfg.commandCodePackagePath?.trim() || process.env.COMMANDCODE_PACKAGE_PATH?.trim() || "";
+    pluginCfg.commandCodePackagePath?.trim() ||
+    deps.getEnv("COMMANDCODE_PACKAGE_PATH")?.trim() ||
+    "";
 
   let models: ModelEntry[] = [];
   let catalogSource: CatalogLoad["catalogSource"] = "bundled";
   let commandCodeVersion: string | null = null;
   let degraded = false;
-  let degradedReason: string | null = null;
+  const reasons: string[] = [];
 
   if (override) {
-    const localCatalog = loadCatalogFromLocalCommandCode({ packagePath: override });
-    if (localCatalog && localCatalog.models.length > 0) {
-      models = localCatalog.models;
+    const local = loadCatalogFromLocalCommandCodeResult({ packagePath: override }, deps);
+    if (local.ok && local.value && local.value.models.length > 0) {
+      models = local.value.models;
       catalogSource = "opt-in-local";
-      commandCodeVersion = localCatalog.version;
+      commandCodeVersion = local.value.version;
+    } else if (!local.ok) {
+      reasons.push(`local override failed (${local.reason})`);
+    } else {
+      reasons.push("local override produced no models");
     }
   }
 
   if (models.length === 0) {
     const bundled = loadBundledModels();
-    if (bundled) {
-      models = bundled;
+    if (bundled.ok) {
+      models = bundled.value.models;
       catalogSource = "bundled";
-      commandCodeVersion = readBundledVersion();
+      const version = readBundledVersion();
+      commandCodeVersion = version.ok ? version.value : null;
       const manifest = readBundledManifest();
-      if (manifest?.status === "degraded" || manifest?.status === "broken") {
+      if (
+        manifest.ok &&
+        manifest.value &&
+        (manifest.value.status === "degraded" || manifest.value.status === "broken")
+      ) {
         degraded = true;
-        degradedReason =
-          manifest.status === "broken"
+        reasons.push(
+          manifest.value.status === "broken"
             ? "bundled catalog marked broken"
-            : "bundled catalog has models with no listed price";
+            : "bundled catalog has models with no listed price",
+        );
+      }
+      if (bundled.value.dropped > 0) {
+        degraded = true;
+        const details =
+          bundled.value.dropReasons.length > 0 ? `: ${bundled.value.dropReasons.join("; ")}` : "";
+        reasons.push(
+          `dropped ${bundled.value.dropped} invalid bundled model ${bundled.value.dropped === 1 ? "entry" : "entries"}${details}`,
+        );
       }
     } else {
-      const cached = readCatalogCache();
-      if (cached) {
-        models = cached;
+      const cached = readCatalogCacheResult(undefined, deps);
+      if (cached.ok) {
+        models = cached.value;
         catalogSource = "cache";
         degraded = true;
-        degradedReason = "bundled models.json unreadable; using last-good cache";
+        reasons.push(`bundled models.json failed (${bundled.reason}); using last-good cache`);
       } else {
         degraded = true;
-        degradedReason = "no bundled catalog and no cache";
+        reasons.push(`no bundled catalog (${bundled.reason}) and no cache (${cached.reason})`);
       }
     }
   }
 
-  return { models, catalogSource, commandCodeVersion, degraded, degradedReason };
+  // Override notes only sharpen an already-degraded report; a healthy
+  // bundled load stays non-degraded exactly as before.
+  return {
+    models,
+    catalogSource,
+    commandCodeVersion,
+    degraded,
+    degradedReason: degraded ? reasons.join("; ") : null,
+  };
 }
 
-function persistCatalogSideEffects(load: CatalogLoad, debug: boolean): void {
+function persistCatalogSideEffects(
+  load: CatalogLoad,
+  debug: boolean,
+  deps: EnvDeps = liveEnv,
+): void {
   if (load.models.length > 0) {
     try {
-      writeCatalogCache(pluginStateDir(), load.models);
+      writeCatalogCache(resolveStateDir(deps), load.models);
     } catch {
       // ignore cache write
     }
@@ -147,7 +215,7 @@ function persistCatalogSideEffects(load: CatalogLoad, debug: boolean): void {
     degradedReason: load.degradedReason,
   };
   try {
-    writeStartupSummary(pluginStateDir(), summary);
+    writeStartupSummary(resolveStateDir(deps), summary);
   } catch {
     // ignore
   }
@@ -171,9 +239,19 @@ export async function server() {
       const pluginCfg = loadPluginConfig();
       const debug = pluginCfg.debugStartupLogs === true;
 
-      if (!cc.npm) cc.npm = "commandcode-go-opencode-provider";
+      if (!cc.npm) cc.npm = PROVIDER_SDK_NPM;
       if (!cc.name) cc.name = "Command Code";
       if (!cc.env) cc.env = ["COMMANDCODE_API_KEY"];
+      // V1 resolves `npm` through BunProc.install and calls the first `create*` export, so
+      // the SDK package must be the OpenAI-compatible one; give it the Provider API URL
+      // unless the user already configured another baseURL (custom npm stays untouched).
+      if (cc.npm === PROVIDER_SDK_NPM) {
+        if (cc.options === undefined) cc.options = {};
+        if (typeof cc.options === "object" && cc.options !== null) {
+          const options = cc.options as Record<string, unknown>;
+          if (!options.baseURL) options.baseURL = PROVIDER_API_BASE_URL;
+        }
+      }
 
       if (cc.models) return;
 
@@ -227,9 +305,9 @@ async function setup(ctx: any): Promise<void> {
           id: "commandcode",
           name: "Command Code",
           activation: "enabled",
-          package: "aisdk:@ai-sdk/openai-compatible",
+          package: `aisdk:${PROVIDER_SDK_NPM}`,
           settings: {
-            baseURL: "https://api.commandcode.ai/provider/v1",
+            baseURL: PROVIDER_API_BASE_URL,
             apiKey: "{env:COMMANDCODE_API_KEY}",
           },
         },
@@ -241,8 +319,7 @@ async function setup(ctx: any): Promise<void> {
       provider.name = provider.name ?? "Command Code";
       provider.settings = provider.settings ?? {};
       if (typeof provider.settings === "object") {
-        if (!provider.settings.baseURL)
-          provider.settings.baseURL = "https://api.commandcode.ai/provider/v1";
+        if (!provider.settings.baseURL) provider.settings.baseURL = PROVIDER_API_BASE_URL;
         if (!provider.settings.apiKey) provider.settings.apiKey = "{env:COMMANDCODE_API_KEY}";
       }
     });

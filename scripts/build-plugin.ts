@@ -2,7 +2,8 @@
 // Build the self-contained OpenCode plugin entry (dist/plugin.js).
 // Bundles src/entry.ts (plugin default + V1 server + AI-SDK factory) for
 // node ESM; the `ai` package stays external and node builtins stay external
-// via --target node. All other imports are type-only (erased at build).
+// via --target node. Runtime imports (currently zod) are bundled into
+// dist/plugin.js — keep them minimal, dist size is release-noted (see AGENTS.md).
 import { spawnSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";

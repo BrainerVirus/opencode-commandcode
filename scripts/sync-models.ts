@@ -219,9 +219,12 @@ function updateGlobalConfig(modelsObj: Record<string, unknown>) {
   if (!config.provider) config.provider = {};
   if (!config.provider.commandcode) {
     config.provider.commandcode = {
-      npm: "commandcode-go-opencode-provider",
+      // V1 `npm` is an AI SDK package (not this plugin package) and the
+      // OpenAI-compatible SDK needs the Provider API base URL.
+      npm: "@ai-sdk/openai-compatible",
       name: "Command Code",
       env: ["COMMANDCODE_API_KEY"],
+      options: { baseURL: "https://api.commandcode.ai/provider/v1" },
     };
   }
   config.provider.commandcode.models = modelsObj;
