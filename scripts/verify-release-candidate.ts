@@ -6,7 +6,14 @@ import { tmpdir } from "os";
 import { join } from "path";
 
 const ROOT = join(import.meta.dir, "..");
-const REQUIRED = ["plugin.ts", "models.json", "manifest.json", "package.json", "src/catalog.ts"];
+const REQUIRED = [
+  "dist/plugin.js",
+  "plugin.ts",
+  "models.json",
+  "manifest.json",
+  "package.json",
+  "src/catalog.ts",
+];
 const FORBIDDEN = ["tests/", "docs/", ".github/"];
 
 const dir = mkdtempSync(join(tmpdir(), "cc-pack-"));

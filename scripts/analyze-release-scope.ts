@@ -10,6 +10,7 @@ const PRODUCT_FILES = new Set([
   "models.json",
   "manifest.json",
   "_version.txt",
+  "package.json",
 ]);
 
 export function isProductPath(file: string): boolean {
