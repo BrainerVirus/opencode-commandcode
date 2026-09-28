@@ -456,6 +456,7 @@ export function buildCostMap(costs: Record<string, CostEntry[]>): Map<string, Co
 export function buildModelEntry(
   entry: SnEntry,
   costMap: Map<string, CostEntry>,
+  vendorContextLength?: number,
 ): ModelEntry | null {
   const provider = entry.provider || "unknown";
   const tier = TIER_MAP[provider] ?? "open-source";
@@ -475,8 +476,12 @@ export function buildModelEntry(
   }
 
   const fallback = FALLBACK_LIMITS[entry.id];
+  const context = entry.contextWindow ?? fallback?.context ?? 200000;
   const limit = {
-    context: entry.contextWindow ?? fallback?.context ?? 200000,
+    context:
+      entry.contextWindow === undefined && vendorContextLength !== undefined
+        ? Math.min(context, vendorContextLength)
+        : context,
     output: entry.maxOutputTokens ?? fallback?.output ?? 65536,
   };
 
@@ -535,7 +540,10 @@ export function sortModelEntries(entries: ModelEntry[]): ModelEntry[] {
   });
 }
 
-export function loadCatalogFromBundle(source: string): ModelEntry[] {
+export function loadCatalogFromBundle(
+  source: string,
+  vendorContextLengths?: ReadonlyMap<string, number>,
+): ModelEntry[] {
   const models = extractModelCatalog(source);
   let costMap = new Map<string, CostEntry>();
   try {
@@ -547,13 +555,21 @@ export function loadCatalogFromBundle(source: string): ModelEntry[] {
   const entries: ModelEntry[] = [];
   for (const model of Object.values(models)) {
     if (!model || typeof model !== "object" || typeof model.id !== "string") continue;
-    const entry = buildModelEntry(model, costMap);
+    const entry = buildModelEntry(
+      model,
+      costMap,
+      vendorContextLengths?.get(model.id.toLowerCase()),
+    );
     if (entry) entries.push(entry);
   }
 
   for (const extra of HARDCODED_EXTRAS) {
     if (!entries.some((e) => e.id === extra.id)) {
-      const entry = buildModelEntry(extra, costMap);
+      const entry = buildModelEntry(
+        extra,
+        costMap,
+        vendorContextLengths?.get(extra.id.toLowerCase()),
+      );
       if (entry) entries.push(entry);
     }
   }
@@ -718,6 +734,7 @@ export function resolveCommandCodePackage(
 export function loadCatalogFromLocalCommandCodeResult(
   options?: {
     packagePath?: string;
+    vendorContextLengths?: ReadonlyMap<string, number>;
   },
   deps: EnvDeps = liveEnv,
 ): LoadResult<LocalCatalogResult | null> {
@@ -734,7 +751,7 @@ export function loadCatalogFromLocalCommandCodeResult(
     }
     let models: ModelEntry[];
     try {
-      models = loadCatalogFromBundle(source);
+      models = loadCatalogFromBundle(source, options?.vendorContextLengths);
     } catch (error) {
       return errResult(`local command-code catalog failed to evaluate: ${causeMessage(error)}`);
     }
@@ -753,6 +770,7 @@ export function loadCatalogFromLocalCommandCodeResult(
 /** Compat wrapper: value-or-null for callers that only need fail-open. */
 export function loadCatalogFromLocalCommandCode(options?: {
   packagePath?: string;
+  vendorContextLengths?: ReadonlyMap<string, number>;
 }): LocalCatalogResult | null {
   const result = loadCatalogFromLocalCommandCodeResult(options);
   return result.ok ? result.value : null;
@@ -765,14 +783,33 @@ export function toConfigKey(id: string): string {
   return short.toLowerCase();
 }
 
+export function usesAnthropicMessagesApi(id: string): boolean {
+  return /(?:^|[/:])claude-/i.test(id);
+}
+
 export function generateOpencodeModels(entries: ModelEntry[]): Record<string, unknown> {
   const models: Record<string, unknown> = {};
   for (const entry of entries) {
     // Map key = short UI id; `id` on the model = Command Code wire id (same split as V2 modelID).
     const key = toConfigKey(entry.id);
-    const costObj: Record<string, number> = { input: entry.cost.input, output: entry.cost.output };
+    const costObj: Record<string, unknown> = { input: entry.cost.input, output: entry.cost.output };
     if (entry.cost.cache_read !== undefined) costObj.cache_read = entry.cost.cache_read;
     if (entry.cost.cache_write !== undefined) costObj.cache_write = entry.cost.cache_write;
+    const contextOver200k =
+      entry.cost.context_over_200k ??
+      entry.cost.tiers?.find((tier) => tier.tier.type === "context" && tier.tier.size === 200000);
+    if (contextOver200k) {
+      costObj.context_over_200k = {
+        input: contextOver200k.input,
+        output: contextOver200k.output,
+        ...(contextOver200k.cache_read !== undefined
+          ? { cache_read: contextOver200k.cache_read }
+          : {}),
+        ...(contextOver200k.cache_write !== undefined
+          ? { cache_write: contextOver200k.cache_write }
+          : {}),
+      };
+    }
 
     const model: Record<string, unknown> = {
       id: entry.id,
@@ -783,7 +820,15 @@ export function generateOpencodeModels(entries: ModelEntry[]): Record<string, un
       modalities: entry.modalities ?? { input: ["text"], output: ["text"] },
       cost: costObj,
       limit: entry.limit,
+      status: entry.status ?? "active",
     };
+
+    if (entry.family !== undefined) model.family = entry.family;
+    if (entry.release_date !== undefined) model.release_date = entry.release_date;
+
+    if (usesAnthropicMessagesApi(entry.id)) {
+      model.provider = { npm: "@ai-sdk/anthropic" };
+    }
 
     if (entry.reasoningEfforts && entry.reasoningEfforts.length > 0) {
       model.reasoningEfforts = entry.reasoningEfforts;
@@ -801,6 +846,8 @@ export function generateOpencodeModels(entries: ModelEntry[]): Record<string, un
 
 export const MODELS_API_URL = "https://api.commandcode.ai/provider/v1/models";
 
+export type ProviderModelMetadata = { id: string; context_length?: number };
+
 export interface FilteredCatalog<T extends { id: string }> {
   retained: T[];
   unavailable: string[];
@@ -808,12 +855,17 @@ export interface FilteredCatalog<T extends { id: string }> {
 
 /** Validate the OpenAI-style `{ object: "list", data: [{ id }] }` availability payload. */
 export function parseAvailabilityIds(payload: unknown): string[] {
+  return parseAvailabilityModels(payload).map((model) => model.id);
+}
+
+/** Parse the vendor model inventory, retaining its context limit when present. */
+export function parseAvailabilityModels(payload: unknown): ProviderModelMetadata[] {
   const parsed = AvailabilityPayloadSchema.safeParse(payload);
   if (!parsed.success) {
     const detail = parsed.error.issues.map((issue) => issue.message).join("; ");
     throw new Error(`invalid availability response: ${detail}`);
   }
-  return parsed.data.data.map((item) => item.id);
+  return parsed.data.data;
 }
 
 /** Retain only candidates whose exact ID is callable; collect sorted excluded IDs. */

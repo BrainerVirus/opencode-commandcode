@@ -1,5 +1,5 @@
 import { expect, test, describe } from "bun:test";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "fs";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import {
@@ -9,6 +9,7 @@ import {
   generateOpencodeModels,
   loadCatalogFromBundle,
   loadCatalogFromLocalCommandCodeResult,
+  parseAvailabilityModels,
   parseAvailabilityIds,
   resolveCommandCodePackage,
   type CostEntry,
@@ -138,6 +139,50 @@ describe("buildModelEntry", () => {
     expect(text!.limit).toEqual({ context: 1048576, output: 64000 });
   });
 
+  test("clamps fallback context limits to vendor values but keeps explicit CLI limits", () => {
+    const vendor = parseAvailabilityModels(
+      JSON.parse(readFileSync(join(import.meta.dir, "../fixtures/vendor-models.json"), "utf-8")),
+    );
+    const lengths = new Map(
+      vendor.flatMap((model) =>
+        model.context_length !== undefined
+          ? [[model.id.toLowerCase(), model.context_length] as const]
+          : [],
+      ),
+    );
+    const ids = ["Qwen/Qwen3.6-Max-Preview", "Qwen/Qwen3.6-Plus", "MiniMaxAI/MiniMax-M2.7"];
+    const entries = ids.map((id) =>
+      buildModelEntry(
+        {
+          id,
+          provider: "vercel-ai-gateway",
+          spec: "chatComplete",
+          label: id,
+          name: id,
+          description: id,
+        },
+        new Map(),
+        lengths.get(id.toLowerCase()),
+      ),
+    );
+    expect(entries.map((entry) => entry?.limit.context)).toEqual(ids.map(() => 200000));
+
+    const explicit = buildModelEntry(
+      {
+        id: "Qwen/Qwen3.6-Plus",
+        provider: "vercel-ai-gateway",
+        spec: "chatComplete",
+        label: "Qwen",
+        name: "Qwen 3.6 Plus",
+        description: "d",
+        contextWindow: 1000000,
+      },
+      new Map(),
+      200000,
+    );
+    expect(explicit?.limit.context).toBe(1000000);
+  });
+
   test("does not invent a billed rate for models missing from the CLI cost map", () => {
     const sn: SnEntry = {
       id: "google/gemini-3.5-flash",
@@ -218,6 +263,36 @@ describe("generateOpencodeModels", () => {
     const entry = models["deepseek-v4.1-flash"] as Record<string, unknown>;
     expect(entry.id).toBe("deepseek/deepseek-v4.1-flash");
     expect(entry.name).toBe("DeepSeek V4.1 Flash");
+    expect(entry.provider).toBeUndefined();
+  });
+
+  test("routes Claude entries through the Anthropic Messages SDK per model", () => {
+    const ids = [
+      "claude-sonnet-5",
+      "claude-sonnet-4-6",
+      "claude-fable-5",
+      "claude-fable-5-1",
+      "claude-opus-5-5",
+      "claude-opus-5",
+      "claude-opus-4-8",
+      "claude-opus-4-7",
+      "claude-haiku-4-5-20251001",
+    ];
+    const models = generateOpencodeModels(
+      ids.map((id) => ({
+        id,
+        name: id,
+        tier: "premium" as const,
+        reasoning: false,
+        tool_call: true,
+        cost: { input: 1, output: 2 },
+        limit: { context: 200000, output: 16000 },
+      })),
+    );
+    for (const id of ids) {
+      const entry = models[id] as Record<string, unknown>;
+      expect(entry.provider).toEqual({ npm: "@ai-sdk/anthropic" });
+    }
   });
 
   test("emits attachment and modalities, defaulting to text-only", () => {
@@ -249,6 +324,61 @@ describe("generateOpencodeModels", () => {
     expect(gemini.modalities).toEqual({ input: ["text", "image"], output: ["text"] });
     expect(hy4.attachment).toBe(false);
     expect(hy4.modalities).toEqual({ input: ["text"], output: ["text"] });
+  });
+
+  test("emits family, release date, status, and input limit metadata", () => {
+    const models = generateOpencodeModels([
+      {
+        id: "Qwen/Qwen3.6-Plus",
+        name: "Qwen 3.6 Plus",
+        tier: "open-source",
+        reasoning: true,
+        tool_call: true,
+        cost: { input: 0.5, output: 3 },
+        limit: { context: 200000, input: 200000, output: 131072 },
+        family: "qwen",
+        release_date: "2026-04-02",
+        status: "beta",
+      },
+    ]);
+    expect(models["qwen3.6-plus"]).toMatchObject({
+      family: "qwen",
+      release_date: "2026-04-02",
+      status: "beta",
+      limit: { context: 200000, input: 200000, output: 131072 },
+    });
+  });
+
+  test("maps only an exact 200K tier to the V1 legacy cost field", () => {
+    const models = generateOpencodeModels([
+      {
+        id: "provider/model",
+        name: "Model",
+        tier: "open-source",
+        reasoning: false,
+        tool_call: true,
+        cost: {
+          input: 1,
+          output: 2,
+          tiers: [
+            {
+              input: 10,
+              output: 20,
+              tier: { type: "context", size: 200000 },
+            },
+            {
+              input: 30,
+              output: 40,
+              tier: { type: "context", size: 272000 },
+            },
+          ],
+        },
+        limit: { context: 512000, output: 16000 },
+      },
+    ]);
+    const entry = models.model as { cost: Record<string, unknown> };
+    expect(entry.cost.context_over_200k).toEqual({ input: 10, output: 20 });
+    expect(entry.cost.tiers).toBeUndefined();
   });
 });
 

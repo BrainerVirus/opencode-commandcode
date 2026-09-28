@@ -2,7 +2,7 @@ import { expect, test, describe } from "bun:test";
 import { readFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { parseAvailabilityIds } from "@/src/catalog.ts";
+import { parseAvailabilityIds, parseAvailabilityModels } from "@/src/catalog.ts";
 import {
   AvailabilityPayloadSchema,
   ManifestSchema,
@@ -28,6 +28,10 @@ const fullEntry = {
   cost: { input: 3, output: 15, cache_read: 0.3, cache_write: 3.75 },
   attachment: true,
   modalities: { input: ["text", "image"], output: ["text"] },
+  family: "claude-sonnet",
+  release_date: "2026-02-17",
+  status: "beta",
+  limit: { context: 200000, input: 195000, output: 16000 },
 };
 
 describe("ModelEntrySchema", () => {
@@ -73,6 +77,41 @@ describe("ModelEntrySchema", () => {
       ModelEntrySchema.safeParse({
         ...minimalEntry,
         limit: { context: 200000.5, output: 16000 },
+      }).success,
+    ).toBe(false);
+  });
+
+  test("validates optional catalog metadata strictly", () => {
+    expect(ModelEntrySchema.safeParse({ ...minimalEntry, family: "claude" }).success).toBe(true);
+    expect(ModelEntrySchema.safeParse({ ...minimalEntry, status: "hidden" }).success).toBe(false);
+    expect(
+      ModelEntrySchema.safeParse({ ...minimalEntry, release_date: "2026-02-30" }).success,
+    ).toBe(false);
+    expect(
+      ModelEntrySchema.safeParse({
+        ...minimalEntry,
+        limit: { ...minimalEntry.limit, input: 10.5 },
+      }).success,
+    ).toBe(false);
+  });
+
+  test("accepts context pricing tiers and rejects malformed tier shapes", () => {
+    const tier = {
+      input: 10,
+      output: 37.5,
+      cache_read: 1,
+      tier: { type: "context", size: 200000 },
+    };
+    expect(
+      ModelEntrySchema.safeParse({
+        ...minimalEntry,
+        cost: { ...minimalEntry.cost, tiers: [tier] },
+      }).success,
+    ).toBe(true);
+    expect(
+      ModelEntrySchema.safeParse({
+        ...minimalEntry,
+        cost: { ...minimalEntry.cost, tiers: [{ ...tier, tier: { type: "token", size: 200000 } }] },
       }).success,
     ).toBe(false);
   });
@@ -138,6 +177,17 @@ describe("AvailabilityPayloadSchema / parseAvailabilityIds", () => {
 
   test("returns ids from a valid list response", () => {
     expect(parseAvailabilityIds(ok([{ id: "a" }, { id: "b/c" }]))).toEqual(["a", "b/c"]);
+  });
+
+  test("retains valid vendor context lengths and ignores malformed optional values", () => {
+    expect(
+      parseAvailabilityModels(
+        ok([
+          { id: "Qwen/Qwen3.6-Plus", context_length: 200000 },
+          { id: "other", context_length: "unknown" },
+        ]),
+      ),
+    ).toEqual([{ id: "Qwen/Qwen3.6-Plus", context_length: 200000 }, { id: "other" }]);
   });
 
   test("tolerates extra provider fields on items and top level (lenient)", () => {

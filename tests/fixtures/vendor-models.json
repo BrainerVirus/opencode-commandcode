@@ -1,0 +1,8 @@
+{
+  "object": "list",
+  "data": [
+    { "id": "Qwen/Qwen3.6-Max-Preview", "context_length": 200000 },
+    { "id": "Qwen/Qwen3.6-Plus", "context_length": 200000 },
+    { "id": "MiniMaxAI/MiniMax-M2.7", "context_length": 200000 }
+  ]
+}
