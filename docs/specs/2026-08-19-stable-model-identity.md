@@ -1,6 +1,6 @@
 # Command Code OpenCode Provider — Runtime Identity and Resilience
 
-Status: shipped (updated 2026-09-26)
+Status: shipped baseline (updated 2026-09-26; current V2 additions are in the [2026-09-28 parity spec](./2026-09-28-v2-parity.md))
 
 ## Goal
 
@@ -35,7 +35,7 @@ Every load with models rewrites the cache; every load writes `startup.json`. Wri
 | cost data missing after the CI waterfall | continue; unmatched costs keep the placeholder and the manifest is `degraded` |
 | provider availability call fails in sync | no artifact writes and a `catalog-break` issue; the previous catalog stays |
 | opt-in local extract fails | ignore override; use bundled |
-| auth/connect | registers on V1 regardless of catalog state |
+| auth/connect | V1 auth and V2 integration register regardless of catalog state |
 
 Degraded reporting is internal: `startup.json` carries `degraded` and `degradedReason`, and V1/V2 registration is unchanged. There is no separate degraded UI.
 
@@ -57,7 +57,7 @@ Degraded reporting is internal: `startup.json` carries `degraded` and `degradedR
 - Default is quiet: no `console.log`/`console.warn` in the plugin load path.
 - `~/.local/state/opencode/commandcode-provider/startup.json` records `catalogSource` (`bundled`/`cache`/`opt-in-local`), `commandCodeVersion`, `modelCount`, `reasoningModelCount`, `degraded`, and `degradedReason`.
 - `debugStartupLogs: true` mirrors the summary to stderr once.
-- V1 `server()` registers provider defaults and the API-key auth method; V2 `setup()` adds/updates the provider inventory and models through transforms. Auth stays V1-only.
+- At this spec's 0.9.1 baseline, V1 `server()` registered provider defaults and the API-key auth method; V2 `setup()` only added/updated provider inventory and models. V2 key/env integration support was added later; see the [parity spec](./2026-09-28-v2-parity.md).
 
 ## Config
 
@@ -81,7 +81,7 @@ If favorites migration is ever needed, reopen it as a new spec against the curre
 
 ## Test coverage
 
-Unit tests exercise the shipped contract (`tests/unit/plugin.test.ts`, `startup.test.ts`, `schemas.test.ts`, `catalog.test.ts`, `v2models.test.ts`, `auth.test.ts`):
+Unit tests exercise the baseline contract (`tests/unit/plugin.test.ts`, `startup.test.ts`, `schemas.test.ts`, `catalog.test.ts`, `v2models.test.ts`, `auth.test.ts`); V2 integration behavior is covered by `tests/unit/plugin-v2.test.ts`:
 
 - bundled load, cache fallback, and dropped-entry degraded reasons
 - V1 map key vs wire id; V2 `id` vs `modelID`
@@ -92,3 +92,4 @@ Unit tests exercise the shipped contract (`tests/unit/plugin.test.ts`, `startup.
 
 - [CI catalog automation](./2026-08-28-ci-catalog-automation.md)
 - [Catalog freshness](./2026-09-20-catalog-freshness.md)
+- [OpenCode V1 and V2 parity completion](./2026-09-28-v2-parity.md)
