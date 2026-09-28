@@ -63,6 +63,8 @@ Network failure, invalid JSON, invalid shape, duplicate IDs, an empty list, or a
 
 The previous committed artifacts remain the last-good catalog; this design adds no runtime availability call and no second cache (the runtime last-good cache from the identity spec is unchanged).
 
+The six-hour catalog job refreshes the provider availability list and its `supported_endpoints` metadata even when the CLI bundle version is unchanged. Endpoint metadata is replaced when the provider supplies it; a partial response preserves the last known endpoint list for that model. The job still opens a PR only when generated artifacts change and retains the existing model-count floor and `catalog-break` path.
+
 Cost and modality enrichment runs only for the filtered catalog. `manifest.modelCount`, `reasoningModelCount`, and cost-source counts describe published models, not excluded candidates.
 
 `manifest.review.unavailable` is additive to schema version 1:
@@ -130,6 +132,7 @@ This preserves deterministic startup and offline use. Freshness is delivered by 
 
 - A fixture with three CLI candidates and two API IDs writes exactly the two exact-ID matches.
 - API-absent candidates appear only in sorted `manifest.review.unavailable` entries with reason `not-listed-by-provider-api`.
+- An unchanged CLI bundle still refreshes provider availability and `supported_endpoints`; partial endpoint metadata preserves the last known list, and unchanged generated artifacts create no PR.
 - Static or dynamic Command Code hiding requires no special parser handling when the hidden ID is absent from the API.
 - An unavailable, malformed, empty, duplicate-ID, or below-floor response leaves all generated artifacts byte-for-byte unchanged and exits non-zero.
 - Cost, reasoning, and manifest counts are computed from the filtered catalog.

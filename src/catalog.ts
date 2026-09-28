@@ -787,6 +787,22 @@ export function usesAnthropicMessagesApi(id: string): boolean {
   return /(?:^|[/:])claude-/i.test(id);
 }
 
+export type ModelApi = "chat" | "responses" | "messages";
+
+export function modelApi(entry: Pick<ModelEntry, "id" | "supported_endpoints">): ModelApi {
+  const endpoints = entry.supported_endpoints;
+  const supports = (route: string) =>
+    endpoints?.some((endpoint) => {
+      const path = (endpoint.split(/[?#]/, 1)[0] ?? "").replace(/\/+$/, "");
+      return path === route || path.endsWith(`/${route}`);
+    }) ?? false;
+
+  if (supports("responses")) return "responses";
+  if (supports("messages")) return "messages";
+  if (supports("chat/completions")) return "chat";
+  return usesAnthropicMessagesApi(entry.id) ? "messages" : "chat";
+}
+
 export function generateOpencodeModels(entries: ModelEntry[]): Record<string, unknown> {
   const models: Record<string, unknown> = {};
   for (const entry of entries) {
@@ -826,7 +842,10 @@ export function generateOpencodeModels(entries: ModelEntry[]): Record<string, un
     if (entry.family !== undefined) model.family = entry.family;
     if (entry.release_date !== undefined) model.release_date = entry.release_date;
 
-    if (usesAnthropicMessagesApi(entry.id)) {
+    const api = modelApi(entry);
+    if (api === "responses") {
+      model.provider = { npm: "@ai-sdk/openai" };
+    } else if (api === "messages") {
       model.provider = { npm: "@ai-sdk/anthropic" };
     }
 
@@ -846,7 +865,11 @@ export function generateOpencodeModels(entries: ModelEntry[]): Record<string, un
 
 export const MODELS_API_URL = "https://api.commandcode.ai/provider/v1/models";
 
-export type ProviderModelMetadata = { id: string; context_length?: number };
+export type ProviderModelMetadata = {
+  id: string;
+  context_length?: number;
+  supported_endpoints?: string[];
+};
 
 export interface FilteredCatalog<T extends { id: string }> {
   retained: T[];

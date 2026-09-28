@@ -9,6 +9,7 @@ import {
   generateOpencodeModels,
   loadCatalogFromBundle,
   loadCatalogFromLocalCommandCodeResult,
+  modelApi,
   parseAvailabilityModels,
   parseAvailabilityIds,
   resolveCommandCodePackage,
@@ -293,6 +294,74 @@ describe("generateOpencodeModels", () => {
       const entry = models[id] as Record<string, unknown>;
       expect(entry.provider).toEqual({ npm: "@ai-sdk/anthropic" });
     }
+  });
+
+  test("routes models through Responses when the availability API advertises it", () => {
+    const models = generateOpencodeModels([
+      {
+        id: "deepseek/deepseek-v4-flash",
+        name: "DeepSeek V4 Flash",
+        tier: "open-source",
+        reasoning: true,
+        tool_call: true,
+        cost: { input: 0.15, output: 0.6 },
+        limit: { context: 1000000, output: 65536 },
+        supported_endpoints: ["/provider/v1/chat/completions", "/provider/v1/responses"],
+      },
+      {
+        id: "openai/gpt-5.5",
+        name: "GPT 5.5",
+        tier: "premium",
+        reasoning: true,
+        tool_call: true,
+        cost: { input: 1, output: 2 },
+        limit: { context: 200000, output: 16000 },
+        supported_endpoints: ["responses"],
+      },
+      {
+        id: "vendor/messages-model",
+        name: "Messages Model",
+        tier: "premium",
+        reasoning: false,
+        tool_call: true,
+        cost: { input: 1, output: 2 },
+        limit: { context: 200000, output: 16000 },
+        supported_endpoints: ["/v1/messages"],
+      },
+      {
+        id: "google/gemini-3.5-flash",
+        name: "Gemini 3.5 Flash",
+        tier: "open-source",
+        reasoning: false,
+        tool_call: true,
+        cost: { input: 1, output: 2 },
+        limit: { context: 100000, output: 16000 },
+        supported_endpoints: ["/v1/chat/completions"],
+      },
+    ]);
+    expect((models["deepseek-v4-flash"] as Record<string, any>).provider).toEqual({
+      npm: "@ai-sdk/openai",
+    });
+    expect((models["gpt-5.5"] as Record<string, any>).provider).toEqual({
+      npm: "@ai-sdk/openai",
+    });
+    expect((models["messages-model"] as Record<string, any>).provider).toEqual({
+      npm: "@ai-sdk/anthropic",
+    });
+    expect((models["gemini-3.5-flash"] as Record<string, any>).provider).toBeUndefined();
+  });
+
+  test("prefers advertised API routes and keeps the legacy Claude fallback", () => {
+    expect(
+      modelApi({ id: "vendor/model", supported_endpoints: ["/v1/messages", "/v1/responses"] }),
+    ).toBe("responses");
+    expect(modelApi({ id: "vendor/model", supported_endpoints: ["/v1/messages"] })).toBe(
+      "messages",
+    );
+    expect(
+      modelApi({ id: "claude-sonnet-4-6", supported_endpoints: ["/v1/chat/completions"] }),
+    ).toBe("chat");
+    expect(modelApi({ id: "claude-sonnet-4-6" })).toBe("messages");
   });
 
   test("emits attachment and modalities, defaulting to text-only", () => {

@@ -11,7 +11,7 @@ describe("decideCatalogSync", () => {
         pluginVersion: "0.5.0",
         publishedPluginVersions: ["0.5.0"],
       }),
-    ).toEqual({ extract: true, publishRetry: false, exit: false });
+    ).toEqual({ extract: true, publishRetry: false });
   });
 
   test("extracts when command-code latest differs from the bundle", () => {
@@ -23,7 +23,7 @@ describe("decideCatalogSync", () => {
         pluginVersion: "0.5.0",
         publishedPluginVersions: ["0.5.0"],
       }),
-    ).toEqual({ extract: true, publishRetry: false, exit: false });
+    ).toEqual({ extract: true, publishRetry: false });
   });
 
   test("skips extraction and retries publish when the plugin version is unpublished", () => {
@@ -35,10 +35,10 @@ describe("decideCatalogSync", () => {
         pluginVersion: "0.5.0",
         publishedPluginVersions: [],
       }),
-    ).toEqual({ extract: false, publishRetry: true, exit: false });
+    ).toEqual({ extract: false, publishRetry: true });
   });
 
-  test("exits when command-code is unchanged and the plugin version is already on npm", () => {
+  test("refreshes the catalog when the CLI version is unchanged and the plugin is published", () => {
     expect(
       decideCatalogSync({
         force: false,
@@ -47,7 +47,7 @@ describe("decideCatalogSync", () => {
         pluginVersion: "0.5.0",
         publishedPluginVersions: ["0.5.0"],
       }),
-    ).toEqual({ extract: false, publishRetry: false, exit: true });
+    ).toEqual({ extract: true, publishRetry: false });
   });
 });
 

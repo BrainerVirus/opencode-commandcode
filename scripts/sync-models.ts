@@ -13,7 +13,9 @@ import {
   loadCatalogFromLocalCommandCode,
   parseAvailabilityModels,
   type ModelEntry,
+  type ProviderModelMetadata,
 } from "@/src/catalog.js";
+import { ModelEntrySchema } from "@/src/schemas.js";
 import { applyDocCosts, fetchOfficialModelsMarkdown, parseModelsTable } from "@/src/costs-docs.js";
 import {
   applyFreeCosts,
@@ -50,6 +52,21 @@ function readPriorManifest(): CatalogManifest | null {
   }
 }
 
+function readPriorModels(): ModelEntry[] {
+  if (!existsSync(MODELS_JSON)) return [];
+  try {
+    const entries: unknown = JSON.parse(readFileSync(MODELS_JSON, "utf-8"));
+    return Array.isArray(entries)
+      ? entries.flatMap((entry) => {
+          const parsed = ModelEntrySchema.safeParse(entry);
+          return parsed.success ? [parsed.data] : [];
+        })
+      : [];
+  } catch {
+    return [];
+  }
+}
+
 async function fetchAvailabilityModels(): Promise<ReturnType<typeof parseAvailabilityModels>> {
   const resp = await fetch(MODELS_API_URL);
   if (!resp.ok) throw new Error(`models endpoint returned ${resp.status}`);
@@ -68,7 +85,8 @@ export function buildSyncArtifacts(input: {
   version: string;
   sourceLabel: string;
   pluginVersion: string;
-  availableIds: string[];
+  availabilityModels: ProviderModelMetadata[];
+  priorModels: ModelEntry[];
   priorManifest: CatalogManifest | null;
   cliIds: Set<string>;
   docIds: Set<string>;
@@ -78,12 +96,23 @@ export function buildSyncArtifacts(input: {
 }): SyncArtifacts {
   const { retained, unavailable } = filterCatalogByAvailability(
     input.candidates,
-    input.availableIds,
+    input.availabilityModels.map((model) => model.id),
   );
   const last = lastSuccessfulModelCount(input.priorManifest);
   if (!meetsModelCountFloor(retained.length, last)) {
     throw new Error(`filtered model count ${retained.length} below floor (lastSuccessful=${last})`);
   }
+  const availabilityById = new Map(
+    input.availabilityModels.map((model) => [model.id, model] as const),
+  );
+  const priorById = new Map(input.priorModels.map((model) => [model.id, model] as const));
+  const models = retained.map((entry) => {
+    const endpoints =
+      availabilityById.get(entry.id)?.supported_endpoints ??
+      entry.supported_endpoints ??
+      priorById.get(entry.id)?.supported_endpoints;
+    return endpoints === undefined ? entry : { ...entry, supported_endpoints: endpoints };
+  });
   const costSources = countCostSources({
     modelIds: retained.map((e) => e.id),
     cliIds: input.cliIds,
@@ -118,7 +147,7 @@ export function buildSyncArtifacts(input: {
     ),
     generatedAt: input.generatedAt,
   });
-  return { models: retained, version: input.version, manifest };
+  return { models, version: input.version, manifest };
 }
 
 function cliCostIds(source: string): Set<string> {
@@ -278,6 +307,7 @@ async function main() {
   }
 
   const priorManifest = readPriorManifest();
+  const priorModels = readPriorModels();
   // Enrichment mutates entries in place, so filter the extracted candidates
   // first and run the floor gate before any cost work or artifact write.
   const prefiltered = filterCatalogByAvailability(candidates, availableIds);
@@ -337,7 +367,8 @@ async function main() {
     version,
     sourceLabel,
     pluginVersion,
-    availableIds,
+    availabilityModels: vendorModels,
+    priorModels,
     priorManifest,
     cliIds,
     docIds,

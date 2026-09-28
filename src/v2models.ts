@@ -1,4 +1,4 @@
-import { toConfigKey, usesAnthropicMessagesApi, type ModelEntry } from "./catalog.js";
+import { modelApi, toConfigKey, type ModelEntry } from "./catalog.js";
 
 /** Minimal V2 model shape (structural subset of Model.Info). */
 export interface V2Model {
@@ -91,7 +91,9 @@ export function toV2Model(entry: ModelEntry): V2Model {
       released: entry.release_date ? Date.parse(`${entry.release_date}T00:00:00.000Z`) : 0,
     },
   };
-  if (usesAnthropicMessagesApi(entry.id)) model.package = "aisdk:@ai-sdk/anthropic";
+  const api = modelApi(entry);
+  if (api === "responses") model.package = "aisdk:@ai-sdk/openai";
+  else if (api === "messages") model.package = "aisdk:@ai-sdk/anthropic";
   return model;
 }
 

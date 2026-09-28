@@ -39,6 +39,7 @@ export const ModelEntrySchema = z.strictObject({
     output: z.number().int(),
   }),
   family: z.string().min(1).optional(),
+  supported_endpoints: z.array(z.string().min(1)).optional(),
   release_date: z.iso.date().optional(),
   status: z.enum(["active", "beta", "deprecated"]).optional(),
   attachment: z.boolean().optional(),
@@ -103,6 +104,7 @@ export const AvailabilityPayloadSchema = z
         z.object({
           id: z.string().min(1),
           context_length: z.number().int().positive().optional().catch(undefined),
+          supported_endpoints: z.array(z.string().min(1)).optional().catch(undefined),
         }),
       )
       .min(1),

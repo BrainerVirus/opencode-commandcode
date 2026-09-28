@@ -1,6 +1,10 @@
 # CI Catalog Automation — Zero Local Command Code
 
-Status: shipped (updated 2026-09-26)
+Status: shipped (updated 2026-09-28)
+
+The scheduled job also refreshes provider availability and endpoint metadata
+when the CLI bundle version is unchanged. The implementation phases and plan
+decomposition below are retained as historical rollout notes.
 
 ## Goal
 
@@ -116,13 +120,13 @@ Never fail the sync because costs are incomplete. Model catalog remains the hard
 
 Triggers:
 - cron: every 6 hours (`0 */6 * * *`)
-- `workflow_dispatch` with optional `force=true` (re-extract even if version matches)
+- `workflow_dispatch` with optional `force=true` (force extraction, including for an unpublished plugin version)
 
 Out of scope: `repository_dispatch` watchers.
 
 Steps:
 1. Read npm `command-code@latest` version.
-2. **Idempotency:** if `commandCodeVersion` is unchanged and `force` is false, skip extraction. Unpublished-plugin-version retries are owned by the release job (`release.yml`), not catalog-sync.
+2. If `commandCodeVersion` is unchanged, a published plugin still refreshes the API inventory and metadata on every scheduled run. This catches availability and `supported_endpoints` changes that can ship independently of the CLI bundle. If the current plugin version is unpublished and the CLI bundle is unchanged, wait for the release job (`release.yml`) instead of opening a catalog PR. `force=true` re-extracts in either case.
 3. Download tarball (reuse logic from `scripts/sync-models.ts --remote`).
 4. Extract models (required), filter to the provider-API callable ids, then run the **cost waterfall**:
    - model catalog fail, availability request fail, or filtered count below floor → status `broken`, no artifact writes, no PR.
@@ -255,12 +259,13 @@ One PR path only.
 ## Acceptance Criteria
 
 - User can run OpenCode with **no** global/local `command-code` install and get current models from the installed plugin (npm package, or a `file://` checkout that has been synced).
-- Within 6 hours of a new `command-code` npm release, CI either opens a `fix(catalog)` PR (a patch publishes after it auto-merges) or opens/updates a `catalog-break` issue.
+- Within 6 hours of a new `command-code` npm release or provider API availability/endpoint change, CI either opens a `fix(catalog)` PR (a patch publishes after it auto-merges) or opens/updates a `catalog-break` issue. This also runs when the CLI version is unchanged.
+- A stable provider API response plus unchanged generated files produces no PR; a partial endpoint metadata response preserves the last known endpoint list.
 - Cost-only CLI regressions (like 1.38) still ship a catalog. Costs come from official docs, then free SKUs ($0), then models.dev; `degraded` only if models remain unmatched.
 - Successful sync never requires local `bun run sync` from the user.
 - Failed model extraction never publishes a misleading npm release.
 
-## Implementation Phases
+## Historical Implementation Phases
 
 Same sequence as the identity spec. Phase 1 (A) must refresh `models.json` before anyone relies on “bundled is current”.
 
@@ -291,7 +296,7 @@ Same sequence as the identity spec. Phase 1 (A) must refresh `models.json` befor
 3. Enable publish + GitHub Release in the workflow.
 4. Document `"plugin": ["@brainervirus/opencode-commandcode@latest"]` vs pin.
 
-## Plan decomposition
+## Historical Plan Decomposition
 
 When writing implementation plans, split so each plan ships something usable:
 
@@ -306,7 +311,7 @@ Do not block Plan 1 on npm publishing.
 
 | Risk | Mitigation |
 |---|---|
-| Bot PR noise | skip extraction when tarball version unchanged |
+| Bot PR noise | compare generated artifacts; unchanged files produce no PR |
 | npm publish failure after merge | release job retries unpublished plugin versions; tag/Release only after publish succeeds |
 | Extraction anchors break silently | relative model-count floor + catalog-break issue |
 | User on `file://` | CI cannot update that checkout; README says git pull or switch to npm |

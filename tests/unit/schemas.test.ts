@@ -29,6 +29,7 @@ const fullEntry = {
   attachment: true,
   modalities: { input: ["text", "image"], output: ["text"] },
   family: "claude-sonnet",
+  supported_endpoints: ["/provider/v1/messages"],
   release_date: "2026-02-17",
   status: "beta",
   limit: { context: 200000, input: 195000, output: 16000 },
@@ -93,6 +94,15 @@ describe("ModelEntrySchema", () => {
         limit: { ...minimalEntry.limit, input: 10.5 },
       }).success,
     ).toBe(false);
+    expect(
+      ModelEntrySchema.safeParse({
+        ...minimalEntry,
+        supported_endpoints: ["/v1/responses"],
+      }).success,
+    ).toBe(true);
+    expect(ModelEntrySchema.safeParse({ ...minimalEntry, supported_endpoints: [""] }).success).toBe(
+      false,
+    );
   });
 
   test("accepts context pricing tiers and rejects malformed tier shapes", () => {
@@ -188,6 +198,20 @@ describe("AvailabilityPayloadSchema / parseAvailabilityIds", () => {
         ]),
       ),
     ).toEqual([{ id: "Qwen/Qwen3.6-Plus", context_length: 200000 }, { id: "other" }]);
+  });
+
+  test("retains supported endpoint metadata and ignores malformed optional values", () => {
+    expect(
+      parseAvailabilityModels(
+        ok([
+          { id: "deepseek/model", supported_endpoints: ["/v1/responses", "/v1/chat/completions"] },
+          { id: "other", supported_endpoints: [1] },
+        ]),
+      ),
+    ).toEqual([
+      { id: "deepseek/model", supported_endpoints: ["/v1/responses", "/v1/chat/completions"] },
+      { id: "other" },
+    ]);
   });
 
   test("tolerates extra provider fields on items and top level (lenient)", () => {
