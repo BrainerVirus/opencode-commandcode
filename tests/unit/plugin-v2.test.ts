@@ -31,6 +31,7 @@ test("default export carries V2 id/setup plus V1 server", async () => {
 
 test("V2 setup adds provider with models when missing", async () => {
   const calls: Array<{ name: string }> = [];
+  const methods: unknown[] = [];
   let added: any = null;
   const ctx = {
     provider: {
@@ -53,11 +54,21 @@ test("V2 setup adds provider with models when missing", async () => {
         fn(editor);
       },
     },
+    integration: {
+      transform: async (fn: (editor: any) => void) => {
+        calls.push({ name: "integration.transform" });
+        fn({ method: { update: (input: unknown) => methods.push(input) } });
+      },
+    },
   };
   await dual.setup(ctx);
-  expect(calls.length).toBe(1);
+  expect(calls.map((call) => call.name)).toEqual(["provider.transform", "integration.transform"]);
   expect(added.info.id).toBe("commandcode");
+  expect(added.info.activation).toBe("auto");
   expect(added.info.package).toBe("aisdk:@ai-sdk/openai-compatible");
+  expect(added.info.integrationID).toBe("commandcode");
+  expect(added.info.env).toEqual(["COMMANDCODE_API_KEY"]);
+  expect(added.info.settings.apiKey).toBeUndefined();
   expect(added.info.settings.baseURL).toBe("https://api.commandcode.ai/provider/v1");
   expect(Array.isArray(added.models)).toBe(true);
   expect(added.models.length).toBeGreaterThan(20);
@@ -69,6 +80,13 @@ test("V2 setup adds provider with models when missing", async () => {
   expect(deepseek).toBeDefined();
   expect(deepseek.modelID).toBe("deepseek/deepseek-v4.1-flash");
   expect(deepseek.id).toBe("deepseek-v4.1-flash");
+  expect(methods).toEqual([
+    { integrationID: "commandcode", method: { type: "key", label: "API Key" } },
+    {
+      integrationID: "commandcode",
+      method: { type: "env", names: ["COMMANDCODE_API_KEY"] },
+    },
+  ]);
 });
 
 test("V2 setup preserves existing package and sets models", async () => {
@@ -83,7 +101,12 @@ test("V2 setup preserves existing package and sets models", async () => {
             throw new Error("add should not run when provider exists");
           },
           update: (_id: string, fn2: (p: any) => void) => {
-            updated = { id: _id };
+            updated = {
+              id: _id,
+              activation: "disabled",
+              package: "custom/provider",
+              settings: {},
+            };
             fn2(updated);
           },
           models: {
@@ -95,13 +118,21 @@ test("V2 setup preserves existing package and sets models", async () => {
         fn(editor);
       },
     },
+    integration: {
+      transform: async (fn: (editor: any) => void) => {
+        fn({ method: { update: () => {} } });
+      },
+    },
   };
   await dual.setup(ctx);
   expect(updated.id).toBe("commandcode");
+  expect(updated.activation).toBe("disabled");
   expect(updated.settings.baseURL).toBe("https://api.commandcode.ai/provider/v1");
-  expect(updated.settings.apiKey).toBe("{env:COMMANDCODE_API_KEY}");
-  // Must not overwrite an existing custom package.
-  expect(updated.package).toBeUndefined();
+  expect(updated.integrationID).toBe("commandcode");
+  expect(updated.env).toEqual(["COMMANDCODE_API_KEY"]);
+  expect(updated.settings.apiKey).toBeUndefined();
+  // Must not overwrite existing user choices.
+  expect(updated.package).toBe("custom/provider");
   expect(setModels.id).toBe("commandcode");
   expect(setModels.models.length).toBeGreaterThan(20);
 });

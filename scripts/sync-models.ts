@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, statSync } 
 import { join } from "path";
 import { homedir, tmpdir } from "os";
 import { execSync } from "child_process";
+import { isDeepStrictEqual } from "node:util";
 import {
   NPM_PACKAGE,
   MODELS_API_URL,
@@ -11,13 +12,17 @@ import {
   generateOpencodeModels,
   loadCatalogFromBundle,
   loadCatalogFromLocalCommandCode,
-  parseAvailabilityIds,
+  parseAvailabilityModels,
   type ModelEntry,
+  type ProviderModelMetadata,
 } from "@/src/catalog.js";
+import { ModelEntrySchema } from "@/src/schemas.js";
 import { applyDocCosts, fetchOfficialModelsMarkdown, parseModelsTable } from "@/src/costs-docs.js";
 import {
   applyFreeCosts,
   applyModelsDevCosts,
+  applyModelsDevCostTiers,
+  applyModelsDevMetadata,
   applyModelsDevModalities,
   fetchModelsDevJson,
   parseModelsDev,
@@ -48,7 +53,22 @@ function readPriorManifest(): CatalogManifest | null {
   }
 }
 
-async function fetchAvailabilityIds(): Promise<string[]> {
+function readPriorModels(): ModelEntry[] {
+  if (!existsSync(MODELS_JSON)) return [];
+  try {
+    const entries: unknown = JSON.parse(readFileSync(MODELS_JSON, "utf-8"));
+    return Array.isArray(entries)
+      ? entries.flatMap((entry) => {
+          const parsed = ModelEntrySchema.safeParse(entry);
+          return parsed.success ? [parsed.data] : [];
+        })
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+async function fetchAvailabilityModels(): Promise<ReturnType<typeof parseAvailabilityModels>> {
   const resp = await fetch(MODELS_API_URL);
   if (!resp.ok) throw new Error(`models endpoint returned ${resp.status}`);
   let payload: unknown;
@@ -57,7 +77,7 @@ async function fetchAvailabilityIds(): Promise<string[]> {
   } catch {
     throw new Error("models endpoint returned invalid JSON");
   }
-  return parseAvailabilityIds(payload);
+  return parseAvailabilityModels(payload);
 }
 
 /** Build all model, version, and manifest contents before the first write. */
@@ -66,7 +86,8 @@ export function buildSyncArtifacts(input: {
   version: string;
   sourceLabel: string;
   pluginVersion: string;
-  availableIds: string[];
+  availabilityModels: ProviderModelMetadata[];
+  priorModels: ModelEntry[];
   priorManifest: CatalogManifest | null;
   cliIds: Set<string>;
   docIds: Set<string>;
@@ -76,12 +97,23 @@ export function buildSyncArtifacts(input: {
 }): SyncArtifacts {
   const { retained, unavailable } = filterCatalogByAvailability(
     input.candidates,
-    input.availableIds,
+    input.availabilityModels.map((model) => model.id),
   );
   const last = lastSuccessfulModelCount(input.priorManifest);
   if (!meetsModelCountFloor(retained.length, last)) {
     throw new Error(`filtered model count ${retained.length} below floor (lastSuccessful=${last})`);
   }
+  const availabilityById = new Map(
+    input.availabilityModels.map((model) => [model.id, model] as const),
+  );
+  const priorById = new Map(input.priorModels.map((model) => [model.id, model] as const));
+  const models = retained.map((entry) => {
+    const endpoints =
+      availabilityById.get(entry.id)?.supported_endpoints ??
+      entry.supported_endpoints ??
+      priorById.get(entry.id)?.supported_endpoints;
+    return endpoints === undefined ? entry : { ...entry, supported_endpoints: endpoints };
+  });
   const costSources = countCostSources({
     modelIds: retained.map((e) => e.id),
     cliIds: input.cliIds,
@@ -116,7 +148,14 @@ export function buildSyncArtifacts(input: {
     ),
     generatedAt: input.generatedAt,
   });
-  return { models: retained, version: input.version, manifest };
+  if (
+    input.priorManifest &&
+    isDeepStrictEqual(models, input.priorModels) &&
+    isDeepStrictEqual({ ...manifest, generatedAt: "" }, { ...input.priorManifest, generatedAt: "" })
+  ) {
+    manifest.generatedAt = input.priorManifest.generatedAt;
+  }
+  return { models, version: input.version, manifest };
 }
 
 function cliCostIds(source: string): Set<string> {
@@ -239,11 +278,22 @@ async function main() {
   const shouldUpdateGlobal = args.includes("--update-global");
   const forceRemote = args.includes("--remote");
 
+  console.log("Fetching callable model availability...");
+  const vendorModels = await fetchAvailabilityModels();
+  const availableIds = vendorModels.map((model) => model.id);
+  const vendorContextLengths = new Map<string, number>();
+  for (const model of vendorModels) {
+    if (model.context_length !== undefined) {
+      vendorContextLengths.set(model.id.toLowerCase(), model.context_length);
+    }
+  }
+  console.log(`  Callable models: ${availableIds.length}`);
+
   let version: string;
   let sourceLabel: string;
   let bundleSource: string | null = null;
 
-  const local = !forceRemote ? loadCatalogFromLocalCommandCode() : null;
+  const local = !forceRemote ? loadCatalogFromLocalCommandCode({ vendorContextLengths }) : null;
   let candidates: ModelEntry[];
   if (local) {
     candidates = local.models;
@@ -260,14 +310,12 @@ async function main() {
     sourceLabel = `npm tarball v${version}`;
     console.log(`Read CLI bundle v${version} (${(bundle.source.length / 1024).toFixed(0)} KB)`);
     console.log("Extracting model catalog...");
-    candidates = loadCatalogFromBundle(bundle.source);
+    candidates = loadCatalogFromBundle(bundle.source, vendorContextLengths);
     console.log(`  Found ${candidates.length} models`);
   }
 
   const priorManifest = readPriorManifest();
-  console.log("Fetching callable model availability...");
-  const availableIds = await fetchAvailabilityIds();
-  console.log(`  Callable models: ${availableIds.length}`);
+  const priorModels = readPriorModels();
   // Enrichment mutates entries in place, so filter the extracted candidates
   // first and run the floor gate before any cost work or artifact write.
   const prefiltered = filterCatalogByAvailability(candidates, availableIds);
@@ -313,6 +361,10 @@ async function main() {
   }
   const modalityFilled = applyModelsDevModalities(entries, modelsDevRows);
   console.log(`  Applied models.dev modalities to ${modalityFilled} models`);
+  const metadataFilled = applyModelsDevMetadata(entries, modelsDevRows);
+  console.log(`  Applied models.dev metadata to ${metadataFilled} models`);
+  const tierFilled = applyModelsDevCostTiers(entries, modelsDevRows);
+  console.log(`  Applied models.dev cost tiers to ${tierFilled} models`);
 
   // Entries are already filtered above; buildSyncArtifacts re-validates the
   // floor and returns every generated payload before the first write.
@@ -323,7 +375,8 @@ async function main() {
     version,
     sourceLabel,
     pluginVersion,
-    availableIds,
+    availabilityModels: vendorModels,
+    priorModels,
     priorManifest,
     cliIds,
     docIds,

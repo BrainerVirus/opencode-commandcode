@@ -37,6 +37,106 @@ test("toV2Model keeps short UI id and full Command Code wire modelID", () => {
   expect(m.id).toBe("deepseek-v4.1-flash");
   expect(m.modelID).toBe("deepseek/deepseek-v4.1-flash");
   expect(m.name).toBe("DeepSeek V4.1 Flash");
+  expect(m.package).toBeUndefined();
+});
+
+test("Claude catalog models use the Anthropic Messages package", () => {
+  const ids = [
+    "claude-sonnet-5",
+    "claude-sonnet-4-6",
+    "claude-fable-5",
+    "claude-fable-5-1",
+    "claude-opus-5-5",
+    "claude-opus-5",
+    "claude-opus-4-8",
+    "claude-opus-4-7",
+    "claude-haiku-4-5-20251001",
+  ];
+  const models = generateV2Models(ids.map((id) => ({ ...base, id })));
+  expect(models.map((model) => model.package)).toEqual(ids.map(() => "aisdk:@ai-sdk/anthropic"));
+});
+
+test("V2 maps advertised Responses and Messages packages", () => {
+  expect(
+    toV2Model({
+      ...base,
+      id: "deepseek/deepseek-v4-flash",
+      supported_endpoints: ["/provider/v1/responses"],
+    }).package,
+  ).toBe("aisdk:@ai-sdk/openai");
+  expect(
+    toV2Model({
+      ...base,
+      id: "vendor/messages-model",
+      supported_endpoints: ["/v1/messages"],
+    }).package,
+  ).toBe("aisdk:@ai-sdk/anthropic");
+});
+
+test("V2 maps models.dev release and catalog metadata", () => {
+  const model = toV2Model({
+    ...base,
+    family: "claude-sonnet",
+    release_date: "2026-02-17",
+    status: "beta",
+    limit: { context: 200000, input: 195000, output: 16000 },
+  });
+  expect(model.family).toBe("claude-sonnet");
+  expect(model.time.released).toBe(Date.UTC(2026, 1, 17));
+  expect(model.status).toBe("beta");
+  expect(model.limit).toEqual({ context: 200000, input: 195000, output: 16000 });
+});
+
+test("V2 emits context cost tiers and avoids duplicating the 200K legacy tier", () => {
+  const model = toV2Model({
+    ...base,
+    cost: {
+      input: 5,
+      output: 25,
+      cache_read: 0.5,
+      context_over_200k: { input: 10, output: 37.5, cache_read: 1 },
+      tiers: [
+        {
+          input: 10,
+          output: 37.5,
+          cache_read: 1,
+          tier: { type: "context", size: 200000 },
+        },
+        {
+          input: 12,
+          output: 45,
+          cache_read: 1.2,
+          tier: { type: "context", size: 272000 },
+        },
+      ],
+    },
+  });
+  expect(model.cost).toEqual([
+    { input: 5, output: 25, cache: { read: 0.5, write: 0 } },
+    {
+      input: 10,
+      output: 37.5,
+      cache: { read: 1, write: 0 },
+      tier: { type: "context", size: 200000 },
+    },
+    {
+      input: 12,
+      output: 45,
+      cache: { read: 1.2, write: 0 },
+      tier: { type: "context", size: 272000 },
+    },
+  ]);
+
+  const legacy = toV2Model({
+    ...base,
+    cost: { input: 3, output: 15, context_over_200k: { input: 6, output: 30 } },
+  });
+  expect(legacy.cost[1]).toEqual({
+    input: 6,
+    output: 30,
+    cache: { read: 0, write: 0 },
+    tier: { type: "context", size: 200000 },
+  });
 });
 
 test("toV2Model defaults to text-only when no modality metadata", () => {

@@ -13,11 +13,35 @@ export const ModelEntrySchema = z.strictObject({
     output: z.number(),
     cache_read: z.number().optional(),
     cache_write: z.number().optional(),
+    context_over_200k: z
+      .strictObject({
+        input: z.number(),
+        output: z.number(),
+        cache_read: z.number().optional(),
+        cache_write: z.number().optional(),
+      })
+      .optional(),
+    tiers: z
+      .array(
+        z.strictObject({
+          input: z.number(),
+          output: z.number(),
+          cache_read: z.number().optional(),
+          cache_write: z.number().optional(),
+          tier: z.strictObject({ type: z.literal("context"), size: z.number().int().positive() }),
+        }),
+      )
+      .optional(),
   }),
   limit: z.strictObject({
     context: z.number().int(),
+    input: z.number().int().optional(),
     output: z.number().int(),
   }),
+  family: z.string().min(1).optional(),
+  supported_endpoints: z.array(z.string().min(1)).optional(),
+  release_date: z.iso.date().optional(),
+  status: z.enum(["active", "beta", "deprecated"]).optional(),
   attachment: z.boolean().optional(),
   modalities: z
     .strictObject({
@@ -75,7 +99,15 @@ export const ManifestSchema = z.strictObject({
 export const AvailabilityPayloadSchema = z
   .object({
     object: z.literal("list"),
-    data: z.array(z.object({ id: z.string().min(1) })).min(1),
+    data: z
+      .array(
+        z.object({
+          id: z.string().min(1),
+          context_length: z.number().int().positive().optional().catch(undefined),
+          supported_endpoints: z.array(z.string().min(1)).optional().catch(undefined),
+        }),
+      )
+      .min(1),
   })
   .superRefine((payload, ctx) => {
     const seen = new Set<string>();

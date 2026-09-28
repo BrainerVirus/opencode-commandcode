@@ -289,7 +289,7 @@ export async function server() {
   };
 }
 
-/** V2 setup: provider inventory + models through transforms. Auth stays V1-only for now. */
+/** V2 setup: provider inventory, models, and API-key integration through transforms. */
 async function setup(ctx: any): Promise<void> {
   const pluginCfg = loadPluginConfig();
   const debug = pluginCfg.debugStartupLogs === true;
@@ -304,11 +304,12 @@ async function setup(ctx: any): Promise<void> {
         info: {
           id: "commandcode",
           name: "Command Code",
-          activation: "enabled",
+          activation: "auto",
+          integrationID: "commandcode",
+          env: ["COMMANDCODE_API_KEY"],
           package: `aisdk:${PROVIDER_SDK_NPM}`,
           settings: {
             baseURL: PROVIDER_API_BASE_URL,
-            apiKey: "{env:COMMANDCODE_API_KEY}",
           },
         },
         models: v2models,
@@ -317,13 +318,26 @@ async function setup(ctx: any): Promise<void> {
     }
     editor.update("commandcode", (provider: any) => {
       provider.name = provider.name ?? "Command Code";
+      provider.activation = provider.activation ?? "auto";
+      provider.integrationID = provider.integrationID ?? "commandcode";
+      provider.env = provider.env ?? ["COMMANDCODE_API_KEY"];
       provider.settings = provider.settings ?? {};
       if (typeof provider.settings === "object") {
         if (!provider.settings.baseURL) provider.settings.baseURL = PROVIDER_API_BASE_URL;
-        if (!provider.settings.apiKey) provider.settings.apiKey = "{env:COMMANDCODE_API_KEY}";
       }
     });
     editor.models.set("commandcode", v2models);
+  });
+
+  await ctx.integration.transform((editor: any) => {
+    editor.method.update({
+      integrationID: "commandcode",
+      method: { type: "key", label: "API Key" },
+    });
+    editor.method.update({
+      integrationID: "commandcode",
+      method: { type: "env", names: ["COMMANDCODE_API_KEY"] },
+    });
   });
 }
 

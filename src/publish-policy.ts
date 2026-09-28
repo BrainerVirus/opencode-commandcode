@@ -1,7 +1,6 @@
 export type CatalogSyncDecision = {
   extract: boolean;
   publishRetry: boolean;
-  exit: boolean;
 };
 
 export type PublishDecision = "publish" | "skip-no-token" | "skip-already-published";
@@ -15,10 +14,10 @@ export function decideCatalogSync(input: {
 }): CatalogSyncDecision {
   const published = input.publishedPluginVersions.includes(input.pluginVersion);
   if (input.force || input.latestCommandCodeVersion !== input.bundledCommandCodeVersion) {
-    return { extract: true, publishRetry: false, exit: false };
+    return { extract: true, publishRetry: false };
   }
-  if (!published) return { extract: false, publishRetry: true, exit: false };
-  return { extract: false, publishRetry: false, exit: true };
+  if (!published) return { extract: false, publishRetry: true };
+  return { extract: true, publishRetry: false };
 }
 
 export function decidePublish(input: {

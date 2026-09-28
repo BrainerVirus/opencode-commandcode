@@ -17,7 +17,7 @@ Watch `command-code` on npm every 6 hours, refresh the bundled catalog, publish 
 - Human merges to `main` run semantic-release; releases are path-gated (`scripts/analyze-release-scope.ts`), so CI/docs/tests-only merges do not publish.
 - Cost-only CLI failure still ships (`degraded` only if unmatched placeholder costs remain). Model extract failure → no publish, `catalog-break` issue.
 - Runtime catalog stays bundled `models.json`. No GitHub fetch at OpenCode startup.
-- Hybrid OpenCode transport stays `@ai-sdk/openai-compatible` + Provider API; this package is the **plugin**, not the SDK `npm` field.
+- Chat Completions keep `@ai-sdk/openai-compatible`; provider `supported_endpoints` selects per-model Responses (`@ai-sdk/openai`) or Anthropic Messages where advertised. This package remains the **plugin**, not the SDK `npm` field.
 
 ## First publish
 

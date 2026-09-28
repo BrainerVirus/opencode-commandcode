@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       force:
-        description: Re-extract even if command-code version is unchanged
+        description: Force a catalog refresh, including for an unpublished plugin version
         type: boolean
         default: false
 

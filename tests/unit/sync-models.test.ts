@@ -62,6 +62,12 @@ describe("buildSyncArtifacts", () => {
     version: "1.58.1",
     sourceLabel: "test",
     pluginVersion: "0.7.72",
+    availabilityModels: [] as Array<{
+      id: string;
+      context_length?: number;
+      supported_endpoints?: string[];
+    }>,
+    priorModels: [] as ReturnType<typeof candidate>[],
     priorManifest: null,
     cliIds: new Set<string>(),
     docIds: new Set<string>(),
@@ -79,18 +85,96 @@ describe("buildSyncArtifacts", () => {
         candidate("retired"),
         ...Array.from({ length: 20 }, (_, i) => candidate(`keep-extra-${i}`)),
       ],
-      availableIds: [
+      availabilityModels: [
         "keep-a",
         "keep-b",
         "api-only",
         ...Array.from({ length: 20 }, (_, i) => `keep-extra-${i}`),
-      ],
+      ].map((id) => ({ id })),
     });
     expect(artifacts.models.map((m) => m.id).slice(0, 2)).toEqual(["keep-a", "keep-b"]);
     expect(artifacts.manifest.modelCount).toBe(22);
     expect(artifacts.manifest.review?.unavailable).toEqual([
       { id: "retired", reason: "not-listed-by-provider-api" },
     ]);
+  });
+
+  test("sync carries advertised endpoint changes and preserves known endpoints on partial responses", () => {
+    const candidates = [
+      candidate("changed"),
+      candidate("partial"),
+      candidate("cleared"),
+      ...Array.from({ length: 18 }, (_, i) => candidate(`keep-${i}`)),
+    ];
+    const artifacts = buildSyncArtifacts({
+      ...base,
+      candidates,
+      availabilityModels: [
+        { id: "changed", supported_endpoints: ["/v1/responses"] },
+        { id: "partial" },
+        { id: "cleared", supported_endpoints: [] },
+        ...Array.from({ length: 18 }, (_, i) => ({ id: `keep-${i}` })),
+      ],
+      priorModels: [
+        { ...candidate("changed"), supported_endpoints: ["/v1/chat/completions"] },
+        { ...candidate("partial"), supported_endpoints: ["/v1/chat/completions"] },
+        { ...candidate("cleared"), supported_endpoints: ["/v1/responses"] },
+      ],
+    });
+    expect(artifacts.models.find((model) => model.id === "changed")?.supported_endpoints).toEqual([
+      "/v1/responses",
+    ]);
+    expect(artifacts.models.find((model) => model.id === "partial")?.supported_endpoints).toEqual([
+      "/v1/chat/completions",
+    ]);
+    expect(artifacts.models.find((model) => model.id === "cleared")?.supported_endpoints).toEqual(
+      [],
+    );
+  });
+
+  test("preserves manifest generatedAt when catalog and metadata are unchanged", () => {
+    const candidates = [
+      candidate("same"),
+      ...Array.from({ length: 20 }, (_, i) => candidate(`keep-${i}`)),
+    ];
+    const availabilityModels = candidates.map(({ id }) => ({ id }));
+    const first = buildSyncArtifacts({ ...base, candidates, availabilityModels });
+    const next = buildSyncArtifacts({
+      ...base,
+      candidates,
+      availabilityModels,
+      priorModels: first.models,
+      priorManifest: first.manifest,
+      generatedAt: "2026-09-28T06:00:00.000Z",
+    });
+    expect(next.manifest.generatedAt).toBe(first.manifest.generatedAt);
+  });
+
+  test("updates manifest generatedAt when endpoint metadata changes", () => {
+    const candidates = [
+      candidate("changed"),
+      ...Array.from({ length: 20 }, (_, i) => candidate(`keep-${i}`)),
+    ];
+    const prior = buildSyncArtifacts({
+      ...base,
+      candidates,
+      availabilityModels: candidates.map(({ id }) => ({
+        id,
+        supported_endpoints: ["/v1/chat/completions"],
+      })),
+    });
+    const next = buildSyncArtifacts({
+      ...base,
+      candidates,
+      availabilityModels: candidates.map(({ id }) => ({
+        id,
+        supported_endpoints: ["/v1/responses"],
+      })),
+      priorModels: prior.models,
+      priorManifest: prior.manifest,
+      generatedAt: "2026-09-28T06:00:00.000Z",
+    });
+    expect(next.manifest.generatedAt).toBe("2026-09-28T06:00:00.000Z");
   });
 
   test("buildSyncArtifacts never writes generated artifacts, even on success", () => {
@@ -114,7 +198,7 @@ describe("buildSyncArtifacts", () => {
         buildSyncArtifacts({
           ...base,
           candidates: [candidate("keep-a")],
-          availableIds: ["other"],
+          availabilityModels: [{ id: "other" }],
         }),
       ).toThrow();
       expect(readFileSync(modelsPath, "utf-8")).toBe(before.models);
@@ -126,7 +210,10 @@ describe("buildSyncArtifacts", () => {
           candidate("keep-a"),
           ...Array.from({ length: 20 }, (_, i) => candidate(`keep-extra-${i}`)),
         ],
-        availableIds: ["keep-a", ...Array.from({ length: 20 }, (_, i) => `keep-extra-${i}`)],
+        availabilityModels: [
+          "keep-a",
+          ...Array.from({ length: 20 }, (_, i) => `keep-extra-${i}`),
+        ].map((id) => ({ id })),
       });
       expect(ok.models).toHaveLength(21);
       // Still untouched: main() performs the three writes from these payloads.
