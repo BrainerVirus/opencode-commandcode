@@ -260,7 +260,7 @@ One PR path only.
 
 - User can run OpenCode with **no** global/local `command-code` install and get current models from the installed plugin (npm package, or a `file://` checkout that has been synced).
 - Within 6 hours of a new `command-code` npm release or provider API availability/endpoint change, CI either opens a `fix(catalog)` PR (a patch publishes after it auto-merges) or opens/updates a `catalog-break` issue. This also runs when the CLI version is unchanged.
-- A stable provider API response plus unchanged generated files produces no PR; a partial endpoint metadata response preserves the last known endpoint list.
+- A stable provider API response plus unchanged generated files produces no PR, including no timestamp-only manifest diff; a partial endpoint metadata response preserves the last known endpoint list.
 - Cost-only CLI regressions (like 1.38) still ship a catalog. Costs come from official docs, then free SKUs ($0), then models.dev; `degraded` only if models remain unmatched.
 - Successful sync never requires local `bun run sync` from the user.
 - Failed model extraction never publishes a misleading npm release.

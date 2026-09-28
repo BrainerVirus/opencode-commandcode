@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, statSync } 
 import { join } from "path";
 import { homedir, tmpdir } from "os";
 import { execSync } from "child_process";
+import { isDeepStrictEqual } from "node:util";
 import {
   NPM_PACKAGE,
   MODELS_API_URL,
@@ -147,6 +148,13 @@ export function buildSyncArtifacts(input: {
     ),
     generatedAt: input.generatedAt,
   });
+  if (
+    input.priorManifest &&
+    isDeepStrictEqual(models, input.priorModels) &&
+    isDeepStrictEqual({ ...manifest, generatedAt: "" }, { ...input.priorManifest, generatedAt: "" })
+  ) {
+    manifest.generatedAt = input.priorManifest.generatedAt;
+  }
   return { models, version: input.version, manifest };
 }
 

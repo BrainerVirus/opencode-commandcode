@@ -132,6 +132,51 @@ describe("buildSyncArtifacts", () => {
     );
   });
 
+  test("preserves manifest generatedAt when catalog and metadata are unchanged", () => {
+    const candidates = [
+      candidate("same"),
+      ...Array.from({ length: 20 }, (_, i) => candidate(`keep-${i}`)),
+    ];
+    const availabilityModels = candidates.map(({ id }) => ({ id }));
+    const first = buildSyncArtifacts({ ...base, candidates, availabilityModels });
+    const next = buildSyncArtifacts({
+      ...base,
+      candidates,
+      availabilityModels,
+      priorModels: first.models,
+      priorManifest: first.manifest,
+      generatedAt: "2026-09-28T06:00:00.000Z",
+    });
+    expect(next.manifest.generatedAt).toBe(first.manifest.generatedAt);
+  });
+
+  test("updates manifest generatedAt when endpoint metadata changes", () => {
+    const candidates = [
+      candidate("changed"),
+      ...Array.from({ length: 20 }, (_, i) => candidate(`keep-${i}`)),
+    ];
+    const prior = buildSyncArtifacts({
+      ...base,
+      candidates,
+      availabilityModels: candidates.map(({ id }) => ({
+        id,
+        supported_endpoints: ["/v1/chat/completions"],
+      })),
+    });
+    const next = buildSyncArtifacts({
+      ...base,
+      candidates,
+      availabilityModels: candidates.map(({ id }) => ({
+        id,
+        supported_endpoints: ["/v1/responses"],
+      })),
+      priorModels: prior.models,
+      priorManifest: prior.manifest,
+      generatedAt: "2026-09-28T06:00:00.000Z",
+    });
+    expect(next.manifest.generatedAt).toBe("2026-09-28T06:00:00.000Z");
+  });
+
   test("buildSyncArtifacts never writes generated artifacts, even on success", () => {
     const dir = mkdtempSync(join(tmpdir(), "cc-sync-"));
     try {
