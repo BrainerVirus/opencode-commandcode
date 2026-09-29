@@ -92,8 +92,8 @@ export function toV2Model(entry: ModelEntry): V2Model {
     },
   };
   const api = modelApi(entry);
-  if (api === "responses") model.package = "aisdk:@ai-sdk/openai";
-  else if (api === "messages") model.package = "aisdk:@ai-sdk/anthropic";
+  if (api === "responses") model.package = "@opencode/ai/providers/openai/responses";
+  else if (api === "messages") model.package = "@opencode/ai/providers/anthropic";
   return model;
 }
 

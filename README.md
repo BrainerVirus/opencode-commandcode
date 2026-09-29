@@ -35,7 +35,7 @@ For published plugin versions, the six-hour CI schedule extracts the latest `com
 - **Extract + filter** — model entries (ids, names, reasoning, `inputModalities`, limits) are evaluated out of the minified CLI bundle (`src/catalog.ts`), then intersected with the callable IDs reported by the provider API.
 - **Metadata + costs merge** — vendor context length tightens only a fallback context limit, while `supported_endpoints` selects Messages, Chat Completions, or Responses per model in that preference order; missing endpoint metadata preserves the last known route data. models.dev contributes release date, family, input limit, status, modalities, and cost tiers when present. Tier rows are accepted only when their base prices match this Command Code catalog. Base costs use CLI bundle → official Command Code docs → free SKUs (`$0`) → [models.dev](https://models.dev) reference prices → unmatched placeholder. Anything still unmatched marks the catalog `degraded`. This runs at sync time only; runtime never fetches metadata or prices.
 - **Artifacts** — `models.json` (the catalog), `_version.txt` (upstream version), `manifest.json` (counts, per-source cost stats, `healthy`/`degraded`/`broken` status).
-- **Version-specific registration** — V1 uses the `plugin` config key, `server()` provider map, and V1 auth callback. V2 uses `plugins`, provider/model transforms, and a `commandcode` integration with key and `COMMANDCODE_API_KEY` environment methods. Both retain the Command Code wire model ID. V2 exposes tiered context pricing; V1 emits its supported `context_over_200k` field and keeps flat pricing for other tiers.
+- **Version-specific registration** — V1 uses the `plugin` config key, direct AI SDK packages, the `server()` provider map, and its auth callback. V2 uses `plugins`, OpenCode's native provider runtimes, provider/model transforms, and a `commandcode` integration with key and `COMMANDCODE_API_KEY` environment methods. Both retain the Command Code wire model ID. V2 exposes tiered context pricing; V1 emits its supported `context_over_200k` field and keeps flat pricing for other tiers.
 - **Degraded/cache fallbacks** — a `degraded`/`broken` manifest sets the degraded flag with a reason; an unreadable bundled `models.json` falls back to the last-good cache; auth/connect still registers even with an empty catalog.
 
 ## Quick Start
@@ -64,7 +64,7 @@ The bare package name is unpinned and resolves npm's `latest` release when OpenC
 
 ### 2. No provider block needed
 
-On OpenCode V2 the plugin registers the `commandcode` provider, its models, and its API base URL through the V2 provider API. On V1 the `server` hook fills `provider.commandcode` defaults — `npm: "@ai-sdk/openai-compatible"` plus the Provider API `baseURL`; the plugin package itself is never the SDK `npm` field. Only add a manual provider entry if you need non-default transport options.
+On OpenCode V2 the plugin registers the `commandcode` provider, its models, the native OpenCode runtime, and its API base URL through the V2 provider API. On V1 the `server` hook fills `provider.commandcode` defaults — `npm: "@ai-sdk/openai-compatible"` plus the Provider API `baseURL`; the plugin package itself is never the SDK `npm` field. Only add a manual provider entry if you need non-default transport options.
 
 ### 3. Connect
 

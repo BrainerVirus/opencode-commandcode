@@ -16,10 +16,10 @@ import { ManifestSchema, ModelEntrySchema, PluginFileConfigSchema } from "./src/
 
 const { models: MODELS_PATH, manifest: MANIFEST_PATH, version: VERSION_PATH } = catalogPaths();
 
-// Transport decision (docs/2026-08-28-ci-catalog/spec.md:20): OpenAI-compatible AI SDK +
-// Provider API; this package is the plugin, never the SDK `npm` field. V1 takes the bare
-// npm name; the `aisdk:` prefix is V2-only.
-const PROVIDER_SDK_NPM = "@ai-sdk/openai-compatible";
+// V1 loads the AI SDK package directly. V2 uses OpenCode's native runtime so provider
+// settings such as baseURL survive registry materialization.
+const V1_PROVIDER_SDK_NPM = "@ai-sdk/openai-compatible";
+const V2_PROVIDER_PACKAGE = "@opencode/ai/providers/openai-compatible";
 const PROVIDER_API_BASE_URL = "https://api.commandcode.ai/provider/v1";
 
 type PluginFileConfig = z.infer<typeof PluginFileConfigSchema>;
@@ -239,13 +239,13 @@ export async function server() {
       const pluginCfg = loadPluginConfig();
       const debug = pluginCfg.debugStartupLogs === true;
 
-      if (!cc.npm) cc.npm = PROVIDER_SDK_NPM;
+      if (!cc.npm) cc.npm = V1_PROVIDER_SDK_NPM;
       if (!cc.name) cc.name = "Command Code";
       if (!cc.env) cc.env = ["COMMANDCODE_API_KEY"];
       // V1 resolves `npm` through BunProc.install and calls the first `create*` export, so
       // the SDK package must be the OpenAI-compatible one; give it the Provider API URL
       // unless the user already configured another baseURL (custom npm stays untouched).
-      if (cc.npm === PROVIDER_SDK_NPM) {
+      if (cc.npm === V1_PROVIDER_SDK_NPM) {
         if (cc.options === undefined) cc.options = {};
         if (typeof cc.options === "object" && cc.options !== null) {
           const options = cc.options as Record<string, unknown>;
@@ -307,7 +307,7 @@ async function setup(ctx: any): Promise<void> {
           activation: "auto",
           integrationID: "commandcode",
           env: ["COMMANDCODE_API_KEY"],
-          package: `aisdk:${PROVIDER_SDK_NPM}`,
+          package: V2_PROVIDER_PACKAGE,
           settings: {
             baseURL: PROVIDER_API_BASE_URL,
           },
