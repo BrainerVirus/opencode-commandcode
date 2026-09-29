@@ -1,6 +1,6 @@
 # End-to-End Command Code Catalog Freshness
 
-Status: provider steps shipped (0.7.72, 2026-09-20); upstream OpenCode refresh pending
+Status: provider steps shipped (0.7.72, 2026-09-20); automatic warm-cache refresh remains an upstream OpenCode limitation
 
 ## Goal
 
@@ -10,7 +10,7 @@ Freshness has three independent boundaries:
 
 1. Command Code must identify which extracted models are currently callable.
 2. This provider must publish only that callable catalog with internally consistent metadata.
-3. OpenCode must refresh mutable plugin package references without discarding a working cache.
+3. OpenCode must make it clear when a mutable plugin package is stale and how to update it without losing a working cache.
 
 ## Current Failure
 
@@ -20,7 +20,7 @@ Separately, OpenCode can retain an older installation of `@brainervirus/opencode
 
 The release pipeline also updated `manifest.json` after npm publication. Consequently, the manifest inside a newly published tarball could report the previous plugin version even though the repository was corrected by a later synchronization PR.
 
-Provider-side resolution (2026-09-20): the availability filter shipped in `fix(catalog): exclude unavailable models` and the packed-manifest alignment shipped in `fix(release): align published manifest version`. The OpenCode-side mutable-package refresh (step 3 below) is still pending upstream.
+Provider-side resolution (2026-09-20): the availability filter shipped in `fix(catalog): exclude unavailable models` and the packed-manifest alignment shipped in `fix(release): align published manifest version`. The original request for automatic warm-cache replacement is not implemented by OpenCode V2.0.18; startup loads the cached package and does not replace it. The plugin cannot update the package code that is already running.
 
 ## Decisions
 
@@ -86,19 +86,9 @@ The unavailable list is sorted by ID so repeated synchronization is deterministi
 
 ### Mutable OpenCode plugin packages
 
-The upstream OpenCode implementation will rework pull request [anomalyco/opencode#49485](https://github.com/anomalyco/opencode/pull/49485).
+OpenCode V2.0.18 loads a warm cached package at startup and does not silently replace it. An isolated local startup with a cached Command Code 0.9.1 package loaded 0.9.1 even though npm `latest` was 0.10.1. A clean cache does install the latest package. OpenCode's current V2 plugin documentation describes startup update checks without changing the installed package; the host's update action must be applied before a restart loads the new code. V1.18.30's `opencode plugin <module> --global --force` explicitly refreshes a global package.
 
-For npm plugin references:
-
-- exact versions are immutable and use the cache without refresh;
-- bare package names, dist-tags such as `@latest`, and version ranges are mutable;
-- a mutable reference with no cached installation blocks on installation; a failure reports the normal plugin installation error and leaves no partial cache;
-- a mutable reference with a cached installation loads that cache immediately and starts at most one background refresh per OpenCode process;
-- a successful background refresh becomes active on the next OpenCode restart; plugins are not hot-swapped in a running process;
-- a failed background refresh leaves the cached installation untouched and does not block startup; and
-- equivalent bare and explicit-latest references share one canonical cache location.
-
-Concurrent refresh attempts for the same canonical package are deduplicated. Installation remains atomic so interruption cannot replace a working cache with a partial package.
+The bare package name is the normal unpinned reference; adding `@latest` is redundant. Exact versions remain pinned. The plugin reads only its bundled catalog and cannot refresh its own npm package or hot-swap its running code.
 
 Git, file, and workspace plugin references are outside this behavior change.
 
@@ -114,7 +104,7 @@ Release verification must inspect the packed artifact and fail before publicatio
 
 The installed plugin reads only its bundled `models.json` and `manifest.json` for normal model registration. It does not call the availability endpoint, npm registry, or GitHub to decide which models to expose.
 
-This preserves deterministic startup and offline use. Freshness is delivered by catalog automation plus OpenCode's mutable-package refresh behavior.
+This preserves deterministic startup and offline use. Freshness is delivered by catalog automation plus the host's explicit package-update flow; a warm npm cache can remain stale until that update is applied.
 
 ## Non-Goals
 
@@ -140,13 +130,11 @@ This preserves deterministic startup and offline use. Freshness is delivered by 
 
 ### OpenCode package refresh
 
-- A warm mutable cache starts OpenCode without waiting for the registry.
-- A cold mutable install failure reports an installation error and leaves no cache entry.
-- One background refresh is attempted per canonical mutable package per process.
-- Successful refresh output is used after restart, not during the current process.
-- Offline or failed refresh preserves and continues using the prior cache.
-- Exact-version references perform no background refresh.
-- Bare and `@latest` references cannot maintain divergent cache roots.
+- A clean cache with the bare package entry installs the current npm `latest` release.
+- A warm OpenCode V2.0.18 cache loads its installed version at startup without replacing it.
+- Applying a host plugin update and restarting loads the new package.
+- The V1 force-install command refreshes its configured global package.
+- Exact-version references remain pinned; `@latest` is not required for an unpinned package.
 
 ### Release metadata
 
@@ -156,7 +144,7 @@ This preserves deterministic startup and offline use. Freshness is delivered by 
 
 ### End-to-end
 
-From a clean OpenCode cache, installing the mutable Command Code plugin and restarting after a successful refresh exposes every exact-ID match between extractor candidates and the current API list, including newly added matches, and exposes none of the API-absent retired or unreleased entries.
+From a clean OpenCode cache, the bare Command Code package installs the current npm release and exposes the catalog in that tarball. With a warm stale cache, users must apply the host's package update and restart before the newer catalog appears. In both cases the catalog exposes only the exact-ID matches produced by the provider sync.
 
 ## Coordination Plan
 
@@ -178,17 +166,17 @@ From a clean OpenCode cache, installing the mutable Command Code plugin and rest
    - Owner: OpenCode contributor.
    - Files: the package installation/cache path and tests in the upstream OpenCode repository.
    - Dependency: rework pull request `#49485`; independent of provider steps 1 and 2.
-   - Evidence: cold, warm, offline, exact-version, canonical-cache, deduplication, and next-restart tests in upstream CI.
+   - Evidence: upstream docs and local warm-cache tests show that V2 checks but does not silently replace a cached package; automatic replacement still requires upstream support.
    - Commit: follow OpenCode repository convention.
-   - Status: pending upstream.
+   - Status: pending upstream; see [OpenCode plugin update behavior](https://opencode.ai/v2/docs/plugins).
 4. **Rollout verification**
    - Owner: provider maintainer.
    - Dependency: provider release and an OpenCode build containing step 3.
-   - Evidence: compare the installed tarball manifest to its package version, launch from a clean cache, restart after refresh, and compare displayed provider IDs with the public availability response.
+   - Evidence: compare the installed tarball manifest to its package version, launch from a clean cache, apply a host update to a warm cache, restart, and compare displayed provider IDs with the public availability response.
    - Commit: none unless verification finds a defect.
    - Status: pending upstream.
 
-Provider steps 1 and 2 shipped on 2026-09-20 before the upstream change. Until OpenCode releases step 3, users on stale mutable caches may still need one manual cache refresh; that temporary operational workaround is not part of the target behavior.
+Provider steps 1 and 2 shipped on 2026-09-20. Until OpenCode adds automatic package installation for warm caches, users may need to apply the host update action manually; do not clear the cache as a workaround because it discards a working install.
 
 ## References
 

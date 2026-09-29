@@ -25,7 +25,7 @@ This package is based on **[FanFan4204/opencode-commandcode-provider](https://gi
 - Vision vs text-only comes from the Command Code CLI catalog (`inputModalities` on every SKU). [models.dev](https://models.dev) only adds extra inputs (video/audio/pdf) when it matches.
 - Reasoning effort **variants** on models that declare `reasoningEfforts`.
 - Release date, family, input limits, model status, vendor context limits, and matched context-price tiers flow through the bundled catalog. V2 gets native release, family, input, status, and tier fields; V1 keeps its supported fields and base prices, with `context_over_200k` where representable.
-- The provider's `supported_endpoints` metadata chooses each model's API route. Responses-capable models use `@ai-sdk/openai` on V1 and `aisdk:@ai-sdk/openai` on V2; Claude falls back to Anthropic Messages when endpoint metadata is absent. The V1 and V2 Responses mappings passed official Docker checks against a local mock stream, and a GOAT-key DeepSeek control request succeeded in OpenCode V2. Claude Sonnet 4.6 returned `MODEL_NOT_IN_PLAN` with the message “available in Pro and above plans or extra on-demand usage”; this confirms the account restriction, not successful Anthropic routing. Entitled Claude access has not been live-verified. If a model fails on an account entitled to use it, please [open an issue](https://github.com/BrainerVirus/opencode-commandcode/issues) with the model ID and OpenCode version, or submit a PR with a reproducible fix.
+- The provider's `supported_endpoints` metadata chooses each model's API route. When a model advertises Messages, it uses Anthropic Messages; otherwise Chat Completions is preferred when available, and Responses is used when it is the only advertised route. This avoids malformed annotation events seen on the provider's Responses stream while preserving Responses-only models. V1 maps Responses to `@ai-sdk/openai`; V2 maps it to `aisdk:@ai-sdk/openai`. Claude Sonnet 4.6 returned `MODEL_NOT_IN_PLAN` with the message “available in Pro and above plans or extra on-demand usage”; entitled Claude access has not been live-verified. If a model fails on an account entitled to use it, please [open an issue](https://github.com/BrainerVirus/opencode-commandcode/issues) with the model ID and OpenCode version, or submit a PR with a reproducible fix.
 - Quiet OpenCode startup (diagnostics go to `startup.json`, not stdout).
 
 ## How it works
@@ -33,7 +33,7 @@ This package is based on **[FanFan4204/opencode-commandcode-provider](https://gi
 For published plugin versions, the six-hour CI schedule extracts the latest `command-code` npm bundle and refreshes callable models plus endpoint metadata, even when the CLI version is unchanged. It opens a catalog PR only when generated artifacts change; at startup the plugin loads those artifacts and registers them with OpenCode — never the other way around.
 
 - **Extract + filter** — model entries (ids, names, reasoning, `inputModalities`, limits) are evaluated out of the minified CLI bundle (`src/catalog.ts`), then intersected with the callable IDs reported by the provider API.
-- **Metadata + costs merge** — vendor context length tightens only a fallback context limit, while `supported_endpoints` selects Chat Completions, Responses, or Messages per model; missing endpoint metadata preserves the last known route data. models.dev contributes release date, family, input limit, status, modalities, and cost tiers when present. Tier rows are accepted only when their base prices match this Command Code catalog. Base costs use CLI bundle → official Command Code docs → free SKUs (`$0`) → [models.dev](https://models.dev) reference prices → unmatched placeholder. Anything still unmatched marks the catalog `degraded`. This runs at sync time only; runtime never fetches metadata or prices.
+- **Metadata + costs merge** — vendor context length tightens only a fallback context limit, while `supported_endpoints` selects Messages, Chat Completions, or Responses per model in that preference order; missing endpoint metadata preserves the last known route data. models.dev contributes release date, family, input limit, status, modalities, and cost tiers when present. Tier rows are accepted only when their base prices match this Command Code catalog. Base costs use CLI bundle → official Command Code docs → free SKUs (`$0`) → [models.dev](https://models.dev) reference prices → unmatched placeholder. Anything still unmatched marks the catalog `degraded`. This runs at sync time only; runtime never fetches metadata or prices.
 - **Artifacts** — `models.json` (the catalog), `_version.txt` (upstream version), `manifest.json` (counts, per-source cost stats, `healthy`/`degraded`/`broken` status).
 - **Version-specific registration** — V1 uses the `plugin` config key, `server()` provider map, and V1 auth callback. V2 uses `plugins`, provider/model transforms, and a `commandcode` integration with key and `COMMANDCODE_API_KEY` environment methods. Both retain the Command Code wire model ID. V2 exposes tiered context pricing; V1 emits its supported `context_over_200k` field and keeps flat pricing for other tiers.
 - **Degraded/cache fallbacks** — a `degraded`/`broken` manifest sets the degraded flag with a reason; an unreadable bundled `models.json` falls back to the last-good cache; auth/connect still registers even with an empty catalog.
@@ -46,7 +46,7 @@ OpenCode V2:
 
 ```json
 {
-  "plugins": ["@brainervirus/opencode-commandcode@latest"]
+  "plugins": ["@brainervirus/opencode-commandcode"]
 }
 ```
 
@@ -54,11 +54,11 @@ OpenCode V1:
 
 ```json
 {
-  "plugin": ["@brainervirus/opencode-commandcode@latest"]
+  "plugin": ["@brainervirus/opencode-commandcode"]
 }
 ```
 
-Pin a version instead of `@latest` if you do not want automatic catalog patches.
+The bare package name is unpinned and resolves npm's `latest` release when OpenCode installs or updates it; adding `@latest` is unnecessary. OpenCode V2 checks for updates at startup but keeps an existing cached package. Apply a newer package with OpenCode's plugin-update action, then restart to load it. OpenCode V1 can refresh the global package with `opencode plugin @brainervirus/opencode-commandcode --global --force`.
 
 `file://` checkouts are **not** updated by npm; `git pull` after CI commits, or switch to the npm plugin line.
 
@@ -76,7 +76,7 @@ Set `COMMANDCODE_API_KEY`, or connect interactively. OpenCode V1 provides **Comm
 /models
 ```
 
-Catalog patches arrive as plugin updates: `@latest` refreshes in the background and takes effect on the next OpenCode restart. If a new model is missing after an announced sync, restart opencode once.
+Catalog patches ship in new npm releases. OpenCode loads the version in its package cache; an update must be applied through the host before the new catalog appears. If a new model is missing after an announced sync, check the installed package version, apply the update, and restart OpenCode.
 
 ## Plugin config file
 
