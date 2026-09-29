@@ -65,7 +65,7 @@ test("V2 setup adds provider with models when missing", async () => {
   expect(calls.map((call) => call.name)).toEqual(["provider.transform", "integration.transform"]);
   expect(added.info.id).toBe("commandcode");
   expect(added.info.activation).toBe("auto");
-  expect(added.info.package).toBe("aisdk:@ai-sdk/openai-compatible");
+  expect(added.info.package).toBe("@opencode/ai/providers/openai-compatible");
   expect(added.info.integrationID).toBe("commandcode");
   expect(added.info.env).toEqual(["COMMANDCODE_API_KEY"]);
   expect(added.info.settings.apiKey).toBeUndefined();

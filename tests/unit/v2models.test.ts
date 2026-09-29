@@ -53,7 +53,9 @@ test("Claude catalog models use the Anthropic Messages package", () => {
     "claude-haiku-4-5-20251001",
   ];
   const models = generateV2Models(ids.map((id) => ({ ...base, id })));
-  expect(models.map((model) => model.package)).toEqual(ids.map(() => "aisdk:@ai-sdk/anthropic"));
+  expect(models.map((model) => model.package)).toEqual(
+    ids.map(() => "@opencode/ai/providers/anthropic"),
+  );
 });
 
 test("V2 maps advertised Responses and Messages packages", () => {
@@ -63,7 +65,7 @@ test("V2 maps advertised Responses and Messages packages", () => {
       id: "deepseek/deepseek-v4-flash",
       supported_endpoints: ["/provider/v1/responses"],
     }).package,
-  ).toBe("aisdk:@ai-sdk/openai");
+  ).toBe("@opencode/ai/providers/openai/responses");
   expect(
     toV2Model({
       ...base,
@@ -77,7 +79,7 @@ test("V2 maps advertised Responses and Messages packages", () => {
       id: "vendor/messages-model",
       supported_endpoints: ["/v1/messages"],
     }).package,
-  ).toBe("aisdk:@ai-sdk/anthropic");
+  ).toBe("@opencode/ai/providers/anthropic");
 });
 
 test("V2 maps models.dev release and catalog metadata", () => {
