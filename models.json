@@ -1854,9 +1854,25 @@
     ],
     "tool_call": true,
     "cost": {
-      "input": 1.2,
-      "output": 3.6,
-      "cache_read": 0.3
+      "input": 2,
+      "output": 6,
+      "cache_read": 0.5,
+      "tiers": [
+        {
+          "input": 4,
+          "output": 12,
+          "cache_read": 1,
+          "tier": {
+            "type": "context",
+            "size": 200000
+          }
+        }
+      ],
+      "context_over_200k": {
+        "input": 4,
+        "output": 12,
+        "cache_read": 1
+      }
     },
     "limit": {
       "context": 500000,
