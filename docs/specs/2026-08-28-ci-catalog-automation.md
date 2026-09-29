@@ -180,12 +180,12 @@ When a subsequent sync succeeds after manual fix:
 Published npm name (locked, same account as workit: `brainervirus`):
 
 ```json
-"plugin": ["@brainervirus/opencode-commandcode@latest"]
+{ "plugins": ["@brainervirus/opencode-commandcode"] }
 ```
 
 `package.json` `name` is `@brainervirus/opencode-commandcode` with `publishConfig.access: "public"` (published as `@brainervirus/commandcode-go-opencode-provider` before the 0.6.0 rename). This stays its own repo; it is not folded into `workflow-toolkit`.
 
-`file://` installs are **not** auto-updated by CI; catalog changes require `git pull` of this repo. npm installs update through `@latest`.
+OpenCode V1 uses the singular `plugin` config key with the same bare package name. The package name without a suffix is unpinned and resolves npm's latest dist-tag when installed or updated; `@latest` is redundant. OpenCode V2 checks for unpinned updates at startup but keeps an existing package cache until the host's update action is applied. `file://` installs are not updated by npm; catalog changes require `git pull` of this repo.
 
 ## Runtime Plugin Changes
 
@@ -294,7 +294,7 @@ Same sequence as the identity spec. Phase 1 (A) must refresh `models.json` befor
 1. Rename package to `@brainervirus/commandcode-go-opencode-provider` (shipped at 0.5.0; renamed to `@brainervirus/opencode-commandcode` at 0.6.0).
 2. Store `NPM_TOKEN` (npm user `brainervirus`) as a GitHub Actions secret; `publishConfig.access: public`.
 3. Enable publish + GitHub Release in the workflow.
-4. Document `"plugin": ["@brainervirus/opencode-commandcode@latest"]` vs pin.
+4. Document the bare unpinned package name and explicit-version pinning.
 
 ## Historical Plan Decomposition
 

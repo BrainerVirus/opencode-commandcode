@@ -296,7 +296,7 @@ describe("generateOpencodeModels", () => {
     }
   });
 
-  test("routes models through Responses when the availability API advertises it", () => {
+  test("uses Responses only when no Chat Completions route is advertised", () => {
     const models = generateOpencodeModels([
       {
         id: "deepseek/deepseek-v4-flash",
@@ -339,9 +339,7 @@ describe("generateOpencodeModels", () => {
         supported_endpoints: ["/v1/chat/completions"],
       },
     ]);
-    expect((models["deepseek-v4-flash"] as Record<string, any>).provider).toEqual({
-      npm: "@ai-sdk/openai",
-    });
+    expect((models["deepseek-v4-flash"] as Record<string, any>).provider).toBeUndefined();
     expect((models["gpt-5.5"] as Record<string, any>).provider).toEqual({
       npm: "@ai-sdk/openai",
     });
@@ -351,10 +349,19 @@ describe("generateOpencodeModels", () => {
     expect((models["gemini-3.5-flash"] as Record<string, any>).provider).toBeUndefined();
   });
 
-  test("prefers advertised API routes and keeps the legacy Claude fallback", () => {
+  test("prefers Messages, then Chat Completions, then Responses and keeps the Claude fallback", () => {
     expect(
       modelApi({ id: "vendor/model", supported_endpoints: ["/v1/messages", "/v1/responses"] }),
-    ).toBe("responses");
+    ).toBe("messages");
+    expect(
+      modelApi({
+        id: "deepseek/model",
+        supported_endpoints: ["/v1/chat/completions", "/v1/responses"],
+      }),
+    ).toBe("chat");
+    expect(modelApi({ id: "openai/model", supported_endpoints: ["/v1/responses"] })).toBe(
+      "responses",
+    );
     expect(modelApi({ id: "vendor/model", supported_endpoints: ["/v1/messages"] })).toBe(
       "messages",
     );

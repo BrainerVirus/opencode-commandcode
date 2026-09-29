@@ -67,6 +67,13 @@ test("V2 maps advertised Responses and Messages packages", () => {
   expect(
     toV2Model({
       ...base,
+      id: "deepseek/deepseek-v4.1-flash",
+      supported_endpoints: ["/provider/v1/chat/completions", "/provider/v1/responses"],
+    }).package,
+  ).toBeUndefined();
+  expect(
+    toV2Model({
+      ...base,
       id: "vendor/messages-model",
       supported_endpoints: ["/v1/messages"],
     }).package,

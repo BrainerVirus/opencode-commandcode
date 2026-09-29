@@ -797,9 +797,9 @@ export function modelApi(entry: Pick<ModelEntry, "id" | "supported_endpoints">):
       return path === route || path.endsWith(`/${route}`);
     }) ?? false;
 
-  if (supports("responses")) return "responses";
   if (supports("messages")) return "messages";
   if (supports("chat/completions")) return "chat";
+  if (supports("responses")) return "responses";
   return usesAnthropicMessagesApi(entry.id) ? "messages" : "chat";
 }
 
