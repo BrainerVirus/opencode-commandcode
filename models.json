@@ -814,6 +814,66 @@
     ]
   },
   {
+    "id": "gpt-6.1-sol",
+    "name": "GPT-6.1 Sol",
+    "tier": "premium",
+    "reasoning": true,
+    "reasoningEfforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ],
+    "tool_call": true,
+    "cost": {
+      "input": 2,
+      "output": 10,
+      "cache_read": 0.1,
+      "cache_write": 2.5,
+      "tiers": [
+        {
+          "input": 4,
+          "output": 15,
+          "cache_read": 0.2,
+          "cache_write": 5,
+          "tier": {
+            "type": "context",
+            "size": 272000
+          }
+        }
+      ],
+      "context_over_200k": {
+        "input": 4,
+        "output": 15,
+        "cache_read": 0.2,
+        "cache_write": 5
+      }
+    },
+    "limit": {
+      "context": 1050000,
+      "output": 65536,
+      "input": 922000
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "pdf"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "family": "gpt-sol",
+    "release_date": "2026-09-29",
+    "supported_endpoints": [
+      "/chat/completions",
+      "/responses"
+    ]
+  },
+  {
     "id": "deepseek/deepseek-v4-flash",
     "name": "DeepSeek V4 Flash (latest)",
     "tier": "open-source",
@@ -1019,6 +1079,8 @@
         "text"
       ]
     },
+    "family": "deepseek-flash",
+    "release_date": "2026-09-10",
     "supported_endpoints": [
       "/chat/completions",
       "/responses"
@@ -2185,6 +2247,40 @@
     },
     "family": "ling",
     "release_date": "2026-09-04",
+    "supported_endpoints": [
+      "/chat/completions"
+    ]
+  },
+  {
+    "id": "inclusionai/ling-3.1-flash:free",
+    "name": "Ling 3.1 Flash",
+    "tier": "open-source",
+    "reasoning": true,
+    "reasoningEfforts": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "tool_call": true,
+    "cost": {
+      "input": 0,
+      "output": 0
+    },
+    "limit": {
+      "context": 262144,
+      "output": 32768
+    },
+    "attachment": false,
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "family": "ling",
+    "release_date": "2026-09-29",
     "supported_endpoints": [
       "/chat/completions"
     ]
