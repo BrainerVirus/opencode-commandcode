@@ -2268,7 +2268,8 @@
     },
     "limit": {
       "context": 262144,
-      "output": 32768
+      "output": 32768,
+      "input": 262144
     },
     "attachment": false,
     "modalities": {
