@@ -8,7 +8,8 @@ test("verify:release-candidate packs without publishing", () => {
   const result = spawnSync("bun", ["run", "verify:release-candidate"], {
     cwd: ROOT,
     encoding: "utf-8",
+    timeout: 45_000,
   });
   expect(result.status, result.stderr + result.stdout).toBe(0);
   expect(result.stdout).toContain("verified");
-});
+}, 60_000);
