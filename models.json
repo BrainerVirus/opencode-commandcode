@@ -879,6 +879,7 @@
     "tier": "open-source",
     "reasoning": true,
     "reasoningEfforts": [
+      "off",
       "high",
       "max"
     ],
@@ -947,6 +948,7 @@
     "tier": "open-source",
     "reasoning": true,
     "reasoningEfforts": [
+      "off",
       "high",
       "max"
     ],
@@ -983,6 +985,7 @@
     "tier": "open-source",
     "reasoning": true,
     "reasoningEfforts": [
+      "off",
       "high",
       "max"
     ],
@@ -1018,6 +1021,7 @@
     "tier": "open-source",
     "reasoning": true,
     "reasoningEfforts": [
+      "off",
       "low",
       "high",
       "max"
@@ -1055,6 +1059,7 @@
     "tier": "open-source",
     "reasoning": true,
     "reasoningEfforts": [
+      "off",
       "low",
       "high",
       "max"
@@ -3320,7 +3325,8 @@
     "reasoningEfforts": [
       "low",
       "medium",
-      "high"
+      "high",
+      "max"
     ],
     "tool_call": true,
     "cost": {
