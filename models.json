@@ -3336,7 +3336,8 @@
     },
     "limit": {
       "context": 1000000,
-      "output": 524288
+      "output": 524288,
+      "input": 1000000
     },
     "attachment": true,
     "modalities": {
