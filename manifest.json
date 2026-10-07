@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-06T00:01:34.580Z",
+  "generatedAt": "2026-10-07T00:01:43.748Z",
   "pluginVersion": "0.10.13",
-  "commandCodeVersion": "1.74.3",
-  "commandCodeTarball": "https://registry.npmjs.org/command-code/-/command-code-1.74.3.tgz",
-  "modelCount": 84,
-  "reasoningModelCount": 71,
+  "commandCodeVersion": "1.75.1",
+  "commandCodeTarball": "https://registry.npmjs.org/command-code/-/command-code-1.75.1.tgz",
+  "modelCount": 85,
+  "reasoningModelCount": 72,
   "extraction": {
     "modelCatalog": "ok",
     "costCatalog": "docs",
@@ -13,7 +13,7 @@
   },
   "costSources": {
     "cli": 0,
-    "officialDocs": 84,
+    "officialDocs": 85,
     "thirdParty": 0,
     "free": 0,
     "fallback": 0,
