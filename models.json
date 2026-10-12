@@ -2831,7 +2831,8 @@
         "text",
         "image",
         "video",
-        "pdf"
+        "pdf",
+        "audio"
       ],
       "output": [
         "text"
@@ -2912,7 +2913,8 @@
         "text",
         "image",
         "video",
-        "pdf"
+        "pdf",
+        "audio"
       ],
       "output": [
         "text"
