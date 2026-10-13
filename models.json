@@ -1625,7 +1625,8 @@
       "input": [
         "text",
         "image",
-        "video"
+        "video",
+        "pdf"
       ],
       "output": [
         "text"
@@ -2103,7 +2104,8 @@
     "modalities": {
       "input": [
         "text",
-        "image"
+        "image",
+        "audio"
       ],
       "output": [
         "text"
@@ -2111,7 +2113,6 @@
     },
     "family": "ling",
     "release_date": "2026-07-30",
-    "status": "beta",
     "supported_endpoints": [
       "/chat/completions",
       "/responses"
