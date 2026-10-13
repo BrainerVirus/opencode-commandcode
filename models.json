@@ -2968,6 +2968,48 @@
     ]
   },
   {
+    "id": "meta/muse-wonder-1.0",
+    "name": "Muse Wonder",
+    "tier": "open-source",
+    "reasoning": true,
+    "reasoningEfforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ],
+    "tool_call": true,
+    "cost": {
+      "input": 4,
+      "output": 20,
+      "cache_read": 0.2
+    },
+    "limit": {
+      "context": 1048576,
+      "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "file",
+        "video",
+        "pdf",
+        "audio"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "family": "muse",
+    "release_date": "2026-10-12",
+    "supported_endpoints": [
+      "/chat/completions",
+      "/responses"
+    ]
+  },
+  {
     "id": "nvidia/nemotron-3-ultra-550b-a55b",
     "name": "Nemotron 3 Ultra",
     "tier": "open-source",
