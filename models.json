@@ -1436,6 +1436,46 @@
     ]
   },
   {
+    "id": "google/gemini-4-argon",
+    "name": "Gemini 4 Argon",
+    "tier": "open-source",
+    "reasoning": true,
+    "reasoningEfforts": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "tool_call": true,
+    "cost": {
+      "input": 2,
+      "output": 10,
+      "cache_read": 0.1
+    },
+    "limit": {
+      "context": 1000000,
+      "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video",
+        "audio",
+        "pdf"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "family": "gemini",
+    "release_date": "2026-10-13",
+    "supported_endpoints": [
+      "/chat/completions",
+      "/responses"
+    ]
+  },
+  {
     "id": "zai-org/GLM-5",
     "name": "GLM-5",
     "tier": "open-source",
