@@ -1,5 +1,6 @@
 import { expect, test, beforeAll, afterAll } from "bun:test";
 import { createCommandCode } from "@/index.js";
+import { makeCallOptions, mockFetchTrack } from "@/tests/helpers/mocks.js";
 
 let originalEnv: Record<string, string | undefined> = {};
 beforeAll(() => {
@@ -66,4 +67,59 @@ test("each languageModel call returns a new instance", () => {
   expect(m1).not.toBe(m2);
   expect(m1.modelId).toBe("a");
   expect(m2.modelId).toBe("b");
+});
+
+test("CMD_ZDR=1 adds the ZDR header to SDK requests", async () => {
+  const prev = process.env.CMD_ZDR;
+  process.env.CMD_ZDR = "1";
+  const { calls, restore, respondWith } = mockFetchTrack();
+  respondWith({
+    ok: true,
+    status: 200,
+    headers: new Headers({ "content-type": "text/event-stream" }),
+    body: new ReadableStream({
+      start(controller) {
+        controller.close();
+      },
+    }),
+  });
+  try {
+    const provider = createCommandCode({ apiKey: "sk-test" });
+    await provider.languageModel("m").doStream(makeCallOptions());
+    const headers = calls[0].options.headers as Record<string, string>;
+    expect(headers["x-cmd-zdr"]).toBe("1");
+  } finally {
+    restore();
+    if (prev === undefined) delete process.env.CMD_ZDR;
+    else process.env.CMD_ZDR = prev;
+  }
+});
+
+test("an explicit header wins over the CMD_ZDR opt-in", async () => {
+  const prev = process.env.CMD_ZDR;
+  process.env.CMD_ZDR = "1";
+  const { calls, restore, respondWith } = mockFetchTrack();
+  respondWith({
+    ok: true,
+    status: 200,
+    headers: new Headers({ "content-type": "text/event-stream" }),
+    body: new ReadableStream({
+      start(controller) {
+        controller.close();
+      },
+    }),
+  });
+  try {
+    const provider = createCommandCode({
+      apiKey: "sk-test",
+      headers: { "x-cmd-zdr": "0" },
+    });
+    await provider.languageModel("m").doStream(makeCallOptions());
+    const headers = calls[0].options.headers as Record<string, string>;
+    expect(headers["x-cmd-zdr"]).toBe("0");
+  } finally {
+    restore();
+    if (prev === undefined) delete process.env.CMD_ZDR;
+    else process.env.CMD_ZDR = prev;
+  }
 });

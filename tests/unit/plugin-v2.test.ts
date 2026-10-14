@@ -136,3 +136,82 @@ test("V2 setup preserves existing package and sets models", async () => {
   expect(setModels.id).toBe("commandcode");
   expect(setModels.models.length).toBeGreaterThan(20);
 });
+
+type Captured = { added: any; updated: any; setModels: any };
+
+/** Minimal V2 context; `existing` seeds the update path, absence exercises the add path. */
+function makeCtx(existing?: any): { ctx: any; captured: Captured } {
+  const captured: Captured = { added: null, updated: null, setModels: null };
+  const ctx = {
+    provider: {
+      transform: async (fn: (editor: any) => void) => {
+        const editor = {
+          get: () => existing,
+          add: (input: any) => {
+            captured.added = input;
+          },
+          update: (id: string, fn2: (p: any) => void) => {
+            captured.updated = existing ?? { id, settings: {} };
+            fn2(captured.updated);
+          },
+          models: {
+            set: (id: string, models: any) => {
+              captured.setModels = { id, models };
+            },
+          },
+        };
+        fn(editor);
+      },
+    },
+    integration: {
+      transform: async (fn: (editor: any) => void) => {
+        fn({ method: { update: () => {} } });
+      },
+    },
+  };
+  return { ctx, captured };
+}
+
+async function withEnvZdr<T>(value: string | undefined, fn: () => Promise<T>): Promise<T> {
+  const prev = process.env.CMD_ZDR;
+  if (value === undefined) delete process.env.CMD_ZDR;
+  else process.env.CMD_ZDR = value;
+  try {
+    return await fn();
+  } finally {
+    if (prev === undefined) delete process.env.CMD_ZDR;
+    else process.env.CMD_ZDR = prev;
+  }
+}
+
+test("V2 setup leaves headers unset without a ZDR opt-in", async () => {
+  await withEnvZdr(undefined, async () => {
+    const { ctx, captured } = makeCtx();
+    await dual.setup(ctx);
+    expect(captured.added.info.headers).toBeUndefined();
+  });
+});
+
+test("CMD_ZDR=1 adds the ZDR header to a new V2 provider", async () => {
+  await withEnvZdr("1", async () => {
+    const { ctx, captured } = makeCtx();
+    await dual.setup(ctx);
+    expect(captured.added.info.headers).toEqual({ "x-cmd-zdr": "1" });
+    expect(captured.added.info.settings.baseURL).toBe("https://api.commandcode.ai/provider/v1");
+  });
+});
+
+test("V2 setup merges the ZDR header into existing provider headers", async () => {
+  await withEnvZdr("1", async () => {
+    const existing = {
+      id: "commandcode",
+      headers: { "x-other": "yes", "x-cmd-zdr": "0" },
+      settings: {},
+    };
+    const { ctx, captured } = makeCtx(existing);
+    await dual.setup(ctx);
+    // An explicit user value survives the plugin opt-in.
+    expect(captured.updated.headers).toEqual({ "x-cmd-zdr": "0", "x-other": "yes" });
+    expect(captured.setModels.id).toBe("commandcode");
+  });
+});

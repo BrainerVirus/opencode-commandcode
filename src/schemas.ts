@@ -132,4 +132,5 @@ export const PluginFileConfigSchema = z.object({
   disableModelSync: z.boolean().optional().default(false),
   commandCodePackagePath: z.string().optional().default(""),
   debugStartupLogs: z.boolean().optional().default(false),
+  zdr: z.boolean().optional().default(false),
 });
