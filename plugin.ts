@@ -13,6 +13,7 @@ import type { CatalogManifest } from "./src/manifest.js";
 import { generateV2Models } from "./src/v2models.js";
 import { catalogPaths } from "./src/paths.js";
 import { ManifestSchema, ModelEntrySchema, PluginFileConfigSchema } from "./src/schemas.js";
+import { withZdrHeaders, zdrEnabled } from "./src/zdr.js";
 
 const { models: MODELS_PATH, manifest: MANIFEST_PATH, version: VERSION_PATH } = catalogPaths();
 
@@ -238,6 +239,7 @@ export async function server() {
 
       const pluginCfg = loadPluginConfig();
       const debug = pluginCfg.debugStartupLogs === true;
+      const zdr = zdrEnabled(pluginCfg);
 
       if (!cc.npm) cc.npm = V1_PROVIDER_SDK_NPM;
       if (!cc.name) cc.name = "Command Code";
@@ -245,11 +247,14 @@ export async function server() {
       // V1 resolves `npm` through BunProc.install and calls the first `create*` export, so
       // the SDK package must be the OpenAI-compatible one; give it the Provider API URL
       // unless the user already configured another baseURL (custom npm stays untouched).
+      // V1 merges `options` into every model of the provider, whichever `provider.npm` the
+      // model overrides, so one headers map reaches Chat, Messages, and Responses routes.
       if (cc.npm === V1_PROVIDER_SDK_NPM) {
         if (cc.options === undefined) cc.options = {};
         if (typeof cc.options === "object" && cc.options !== null) {
           const options = cc.options as Record<string, unknown>;
           if (!options.baseURL) options.baseURL = PROVIDER_API_BASE_URL;
+          if (zdr) options.headers = withZdrHeaders(options.headers, true);
         }
       }
 
@@ -293,6 +298,7 @@ export async function server() {
 async function setup(ctx: any): Promise<void> {
   const pluginCfg = loadPluginConfig();
   const debug = pluginCfg.debugStartupLogs === true;
+  const zdr = zdrEnabled(pluginCfg);
   const load = loadCatalogEntries();
   persistCatalogSideEffects(load, debug);
   const v2models = generateV2Models(load.models);
@@ -308,6 +314,9 @@ async function setup(ctx: any): Promise<void> {
           integrationID: "commandcode",
           env: ["COMMANDCODE_API_KEY"],
           package: V2_PROVIDER_PACKAGE,
+          // Provider headers reach every model of the provider, including the
+          // Messages/Responses package a model may select instead of the default.
+          ...(zdr ? { headers: withZdrHeaders(undefined, true) } : {}),
           settings: {
             baseURL: PROVIDER_API_BASE_URL,
           },
@@ -321,6 +330,7 @@ async function setup(ctx: any): Promise<void> {
       provider.activation = provider.activation ?? "auto";
       provider.integrationID = provider.integrationID ?? "commandcode";
       provider.env = provider.env ?? ["COMMANDCODE_API_KEY"];
+      if (zdr) provider.headers = withZdrHeaders(provider.headers, true);
       provider.settings = provider.settings ?? {};
       if (typeof provider.settings === "object") {
         if (!provider.settings.baseURL) provider.settings.baseURL = PROVIDER_API_BASE_URL;
