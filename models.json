@@ -2357,36 +2357,6 @@
     ]
   },
   {
-    "id": "inclusionai/ling-3.0-flash-sante:free",
-    "name": "Ling 3.0 Flash Sante",
-    "tier": "open-source",
-    "reasoning": true,
-    "tool_call": true,
-    "cost": {
-      "input": 0,
-      "output": 0,
-      "cache_read": 0
-    },
-    "limit": {
-      "context": 262144,
-      "output": 32768
-    },
-    "attachment": false,
-    "modalities": {
-      "input": [
-        "text"
-      ],
-      "output": [
-        "text"
-      ]
-    },
-    "family": "ling",
-    "release_date": "2026-09-04",
-    "supported_endpoints": [
-      "/chat/completions"
-    ]
-  },
-  {
     "id": "inclusionai/ling-3.1-flash",
     "name": "Ling 3.1 Flash",
     "tier": "open-source",
