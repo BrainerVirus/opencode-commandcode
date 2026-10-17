@@ -1,4 +1,4 @@
-import { modelApi, toConfigKey, type ModelEntry } from "./catalog.js";
+import { modelApi, modelDisplayName, toConfigKey, type ModelEntry } from "./catalog.js";
 
 /** Minimal V2 model shape (structural subset of Model.Info). */
 export interface V2Model {
@@ -53,7 +53,7 @@ export function toV2Model(entry: ModelEntry): V2Model {
     id,
     modelID: entry.id,
     providerID: "commandcode",
-    name: entry.name,
+    name: modelDisplayName(entry),
     ...(entry.family !== undefined ? { family: entry.family } : {}),
     capabilities: {
       tools: entry.tool_call,

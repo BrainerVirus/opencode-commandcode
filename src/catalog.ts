@@ -783,6 +783,22 @@ export function toConfigKey(id: string): string {
   return short.toLowerCase();
 }
 
+/** Display name with a `(Free)` suffix when every catalog price is $0. Wire id untouched. */
+export function modelDisplayName(entry: ModelEntry): string {
+  const prices = [entry.cost, ...(entry.cost.tiers ?? [])];
+  if (entry.cost.context_over_200k) prices.push(entry.cost.context_over_200k);
+  const free = prices.every(
+    (price) =>
+      price.input === 0 &&
+      price.output === 0 &&
+      (price.cache_read ?? 0) === 0 &&
+      (price.cache_write ?? 0) === 0,
+  );
+  // Sync appends both "(Free)" (models.dev SKUs) and " Free" (disambiguateModelNames).
+  // The leading space/parens keep it a suffix, so "Carefree" still gets the label.
+  return free && !/(?:\sfree|\(free\))$/i.test(entry.name) ? `${entry.name} (Free)` : entry.name;
+}
+
 export function usesAnthropicMessagesApi(id: string): boolean {
   return /(?:^|[/:])claude-/i.test(id);
 }
@@ -829,7 +845,7 @@ export function generateOpencodeModels(entries: ModelEntry[]): Record<string, un
 
     const model: Record<string, unknown> = {
       id: entry.id,
-      name: entry.name,
+      name: modelDisplayName(entry),
       reasoning: entry.reasoning,
       tool_call: entry.tool_call,
       attachment: entry.attachment ?? false,
