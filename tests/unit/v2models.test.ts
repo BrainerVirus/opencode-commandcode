@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { generateV2Models, toV2Model } from "@/src/v2models.ts";
-import { toConfigKey, type ModelEntry } from "@/src/catalog.ts";
+import { generateOpencodeModels, toConfigKey, type ModelEntry } from "@/src/catalog.ts";
 
 const base: ModelEntry = {
   id: "anthropic/claude-sonnet-4-6",
@@ -14,6 +14,44 @@ const base: ModelEntry = {
   attachment: true,
   modalities: { input: ["text", "image"], output: ["text"] },
 };
+
+test.each([
+  { name: "Cat Jam", cost: { input: 0, output: 0 }, expected: "Cat Jam (Free)" },
+  { name: "Cat Jam (Free)", cost: { input: 0, output: 0 }, expected: "Cat Jam (Free)" },
+  { name: "Cat Jam Free", cost: { input: 0, output: 0 }, expected: "Cat Jam Free" },
+  { name: "Carefree", cost: { input: 0, output: 0 }, expected: "Carefree (Free)" },
+  { name: "Paid", cost: { input: 0, output: 1 }, expected: "Paid" },
+  { name: "Paid", cost: { input: 1, output: 0 }, expected: "Paid" },
+  { name: "Cached", cost: { input: 0, output: 0, cache_write: 1 }, expected: "Cached" },
+  { name: "Read", cost: { input: 0, output: 0, cache_read: 1 }, expected: "Read" },
+  {
+    name: "Tiered",
+    cost: {
+      input: 0,
+      output: 0,
+      tiers: [{ input: 0, output: 1, tier: { type: "context" as const, size: 100000 } }],
+    },
+    expected: "Tiered",
+  },
+  {
+    name: "Tiered",
+    cost: { input: 0, output: 0, context_over_200k: { input: 1, output: 2 } },
+    expected: "Tiered",
+  },
+])(
+  "Given $name pricing, both generations show $expected without changing IDs",
+  ({ name, cost, expected }) => {
+    const entry = { ...base, id: "stealth/cat-jam:free", name, cost };
+    const v1 = generateOpencodeModels([entry])["cat-jam:free"] as { name: string; id: string };
+    const v2 = toV2Model(entry);
+    expect(v1.name).toBe(expected);
+    expect(v2.name).toBe(expected);
+    expect(v1.id).toBe("stealth/cat-jam:free");
+    expect(v2.modelID).toBe("stealth/cat-jam:free");
+    expect(v2.id).toBe("cat-jam:free");
+    expect(entry.name).toBe(name);
+  },
+);
 
 test("toV2Model maps V1 entry to V2 capabilities/cost/limit", () => {
   const m = toV2Model(base);
