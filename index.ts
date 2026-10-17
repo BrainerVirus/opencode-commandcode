@@ -1,5 +1,6 @@
 import { resolveApiKey } from "./src/auth.js";
 import { CommandCodeLanguageModel } from "./src/model.js";
+import { withZdrHeaders, zdrFromEnvValue } from "./src/zdr.js";
 
 // Re-export the plugin definition so a directory plugin entry (<dir>/index.ts)
 // loads the dual V1+V2 plugin. No cycle: plugin.ts only imports from src/.
@@ -13,6 +14,15 @@ export interface CommandCodeProviderOptions {
   authPaths?: string[];
 }
 
+/** Caller headers win; `CMD_ZDR=1` only fills the ZDR header when it is absent. */
+function resolveHeaders(options: CommandCodeProviderOptions): Record<string, string> | undefined {
+  const provided =
+    typeof options.headers === "object" && options.headers !== null
+      ? (options.headers as Record<string, string>)
+      : undefined;
+  return withZdrHeaders(provided, zdrFromEnvValue(process.env.CMD_ZDR));
+}
+
 export function createCommandCode(options: CommandCodeProviderOptions = {}) {
   const apiKey = resolveApiKey({ apiKey: options.apiKey, authPaths: options.authPaths });
   if (!apiKey) {
@@ -21,15 +31,14 @@ export function createCommandCode(options: CommandCodeProviderOptions = {}) {
     );
   }
 
+  const headers = resolveHeaders(options);
+
   return {
     languageModel(modelId: string): CommandCodeLanguageModel {
       return new CommandCodeLanguageModel(modelId, {
         apiKey,
         baseURL: typeof options.baseURL === "string" ? options.baseURL : undefined,
-        headers:
-          typeof options.headers === "object" && options.headers !== null
-            ? (options.headers as Record<string, string>)
-            : undefined,
+        headers,
       });
     },
   };

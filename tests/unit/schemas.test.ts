@@ -243,6 +243,7 @@ describe("PluginFileConfigSchema", () => {
       disableModelSync: false,
       commandCodePackagePath: "",
       debugStartupLogs: false,
+      zdr: false,
     });
   });
 
@@ -251,12 +252,14 @@ describe("PluginFileConfigSchema", () => {
       PluginFileConfigSchema.parse({
         debugStartupLogs: true,
         commandCodePackagePath: "/opt/command-code",
+        zdr: true,
         extraKey: "ignored",
       }),
     ).toEqual({
       disableModelSync: false,
       commandCodePackagePath: "/opt/command-code",
       debugStartupLogs: true,
+      zdr: true,
     });
   });
 
@@ -268,6 +271,7 @@ describe("PluginFileConfigSchema", () => {
       disableModelSync: false,
       commandCodePackagePath: "",
       debugStartupLogs: false,
+      zdr: false,
     });
   });
 });
