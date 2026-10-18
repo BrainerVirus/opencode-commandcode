@@ -3046,7 +3046,6 @@
         "text",
         "image",
         "video",
-        "pdf",
         "audio"
       ],
       "output": [
