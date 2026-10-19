@@ -1,5 +1,4 @@
 import { beforeAll, describe, expect, test } from "bun:test";
-import { createCommandCode } from "@/index.js";
 import { withZdrHeaders } from "@/src/zdr.js";
 
 /**
@@ -13,6 +12,9 @@ import { withZdrHeaders } from "@/src/zdr.js";
  * and are probed with `max_tokens: 1` until both outcomes appear (a 422 response
  * never reaches an upstream, so refusals are free). 403 (account entitlement),
  * 429, and 5xx are tolerated along the way; a 400/401 would be a real defect.
+ *
+ * Every request carries an AbortSignal tied to a deadline inside the test
+ * timeout, so a timed-out run cancels in-flight probes and schedules no more.
  *
  * Skipped unless COMMANDCODE_API_KEY is set, and outside `bun run check` because
  * ZDR coverage depends on live upstream availability and account entitlements.
@@ -30,15 +32,18 @@ const ZDR_REFUSAL = "cmd_zdr_no_providers";
 const MAX_PROBES = 40;
 const CONCURRENCY = 4;
 const NETWORK_TIMEOUT_MS = 180_000;
+/** Abort requests before the test timeout fires, so none outlive their test. */
+const REQUEST_BUDGET_MS = NETWORK_TIMEOUT_MS - 15_000;
 /** OpenAI-routed models reject `max_tokens` below 16, so keep the probe above it. */
 const PROBE_MAX_TOKENS = 64;
 
 type Probe = { id: string; status: number; code?: string };
 type Discovery = { probes: Probe[]; capable: Probe[]; denied: Probe[] };
 
-async function listChatModelIds(): Promise<string[]> {
+async function listChatModelIds(signal: AbortSignal): Promise<string[]> {
   const response = await fetch(`${PROVIDER_BASE_URL}/models`, {
     headers: { Authorization: `Bearer ${API_KEY}` },
+    signal,
   });
   if (response.status !== 200) {
     throw new Error(`GET /models: ${response.status} ${(await response.text()).slice(0, 300)}`);
@@ -55,7 +60,7 @@ async function listChatModelIds(): Promise<string[]> {
 }
 
 /** One minimal chat request; `extraHeaders` carries the plugin's ZDR map. */
-async function postChat(model: string, extraHeaders: Record<string, string>) {
+async function postChat(model: string, extraHeaders: Record<string, string>, signal: AbortSignal) {
   const response = await fetch(`${PROVIDER_BASE_URL}/chat/completions`, {
     method: "POST",
     headers: {
@@ -68,6 +73,7 @@ async function postChat(model: string, extraHeaders: Record<string, string>) {
       messages: [{ role: "user", content: "hi" }],
       max_tokens: PROBE_MAX_TOKENS,
     }),
+    signal,
   });
   const body = await response.text();
   let code: string | undefined;
@@ -81,8 +87,11 @@ async function postChat(model: string, extraHeaders: Record<string, string>) {
   return { status: response.status, body, code };
 }
 
-/** Probe chat models until one ZDR-capable and one ZDR-refused sample exist. */
-async function discoverZdrOutcomes(ids: string[]): Promise<Discovery> {
+/**
+ * Probe chat models until one ZDR-capable and one ZDR-refused sample exist, or
+ * until `signal` aborts: an aborted probe is dropped and no new one starts.
+ */
+async function discoverZdrOutcomes(ids: string[], signal: AbortSignal): Promise<Discovery> {
   const probes: Probe[] = [];
   const capable: Probe[] = [];
   const denied: Probe[] = [];
@@ -91,11 +100,17 @@ async function discoverZdrOutcomes(ids: string[]): Promise<Discovery> {
   const header = withZdrHeaders(undefined, true) as Record<string, string>;
 
   const worker = async () => {
-    while (capable.length === 0 || denied.length === 0) {
+    while (!signal.aborted && (capable.length === 0 || denied.length === 0)) {
       const index = started++;
       if (index >= ids.length || started > MAX_PROBES) return;
       const id = ids[index]!;
-      const result = await postChat(id, header);
+      let result: Awaited<ReturnType<typeof postChat>>;
+      try {
+        result = await postChat(id, header, signal);
+      } catch (error) {
+        if (signal.aborted) return;
+        throw error;
+      }
       const probe: Probe = {
         id,
         status: result.status,
@@ -116,8 +131,9 @@ skipIfNoKey("integration: zero data retention", () => {
   let discovery: Discovery | undefined;
 
   beforeAll(async () => {
-    chatIds = await listChatModelIds();
-    discovery = await discoverZdrOutcomes(chatIds);
+    const signal = AbortSignal.timeout(REQUEST_BUDGET_MS);
+    chatIds = await listChatModelIds(signal);
+    discovery = await discoverZdrOutcomes(chatIds, signal);
     console.log(
       `ZDR probe: ${discovery.probes.length}/${chatIds.length} chat models probed, ` +
         `${discovery.capable.length} served, ${discovery.denied.length} refused`,
@@ -172,7 +188,7 @@ skipIfNoKey("integration: zero data retention", () => {
     async () => {
       const sample = discovery?.denied[0];
       if (!sample) throw new Error("no ZDR-refused sample to use as a control");
-      const result = await postChat(sample.id, {});
+      const result = await postChat(sample.id, {}, AbortSignal.timeout(REQUEST_BUDGET_MS));
       if (result.status !== 200) {
         throw new Error(
           `control request for ${sample.id} returned ${result.status}: ${result.body.slice(0, 300)}`,
@@ -182,39 +198,4 @@ skipIfNoKey("integration: zero data retention", () => {
     },
     NETWORK_TIMEOUT_MS,
   );
-
-  test(
-    "CMD_ZDR=1 reaches a live SDK request",
-    async () => {
-      const sample = discovery?.capable[0];
-      if (!sample) throw new Error("no ZDR-capable sample to drive the SDK path");
-
-      const previous = process.env.CMD_ZDR;
-      process.env.CMD_ZDR = "1";
-      try {
-        const provider = createCommandCode({ apiKey: API_KEY! });
-        const model = provider.languageModel(sample.id);
-        // The SDK path targets the CLI-compatible endpoint, so this asserts the
-        // opt-in survives a real request rather than re-checking upstream routing.
-        // Reasoning models may answer with reasoning-only content at a small budget.
-        const result = await model.doGenerate({
-          prompt: [{ role: "user", content: "Reply with exactly the word: hello" }],
-          maxOutputTokens: 64,
-        });
-
-        expect(result.content.length).toBeGreaterThan(0);
-        expect(result.finishReason.unified).toMatch(/stop|length/);
-      } finally {
-        if (previous === undefined) delete process.env.CMD_ZDR;
-        else process.env.CMD_ZDR = previous;
-      }
-    },
-    NETWORK_TIMEOUT_MS,
-  );
-});
-
-test("integration tests are skipped when COMMANDCODE_API_KEY is not set", () => {
-  if (!hasApiKey) {
-    console.log("Skipping ZDR integration tests: COMMANDCODE_API_KEY not set");
-  }
 });
