@@ -39,8 +39,9 @@ export function createCommandCode(options: CommandCodeProviderOptions = {}) {
   return {
     languageModel(modelId: string): CommandCodeLanguageModel {
       // Fail closed before any request: sending without enforced ZDR would leak the
-      // prompt the caller asked to keep out of retention. Thrown here rather than in
-      // the factory, which dist/plugin.js also exports to OpenCode's plugin loader.
+      // prompt the caller asked to keep out of retention. Every caller (direct import,
+      // or OpenCode's `create*` lookup on a provider `npm` set to this package)
+      // resolves a model here before it can send one.
       if (zdrRequested(headers)) {
         throw new Error(
           "Zero data retention is only supported on the Command Code Provider API (/provider/v1/*); createCommandCode uses /alpha/generate. Unset CMD_ZDR, or use the OpenCode provider plugin.",

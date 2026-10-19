@@ -50,8 +50,9 @@ The header value is always `1` and the key is always the lowercase `x-cmd-zdr`.
 - **SDK factory** (`index.ts createCommandCode`): not injected. The factory calls `/alpha/generate`, where ZDR
   enforcement is unestablished, so it fails closed instead: when ZDR is requested, `languageModel()` throws before any
   request is sent. A caller ZDR header (any casing) decides, so `x-cmd-zdr: 1` throws and `x-cmd-zdr: 0` opts out of
-  `CMD_ZDR`; without one, `CMD_ZDR` decides. The throw lives in `languageModel()`, not the factory, because
-  `dist/plugin.js` also exports the factory to OpenCode's plugin loader.
+  `CMD_ZDR`; without one, `CMD_ZDR` decides. Every caller resolves a model through `languageModel()` before it can
+  send a request — a direct import, or OpenCode's `create*` lookup when a provider `npm` points at this package — so
+  the guard there covers both.
 
 ### User override precedence
 

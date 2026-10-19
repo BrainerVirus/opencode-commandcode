@@ -102,7 +102,7 @@ test("CMD_ZDR=1 fails closed in the SDK without sending a request", async () => 
   await withCmdZdr("1", () => {
     const { calls, restore } = mockFetchTrack();
     try {
-      // The factory itself still succeeds: dist/plugin.js exports it to OpenCode's loader.
+      // The guard sits on model resolution, so the factory itself still succeeds.
       const provider = createCommandCode({ apiKey: "sk-test" });
       expect(() => provider.languageModel("m")).toThrow("/provider/v1/*");
       expect(calls).toHaveLength(0);
