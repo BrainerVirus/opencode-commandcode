@@ -27,19 +27,39 @@ export function zdrHeaders(enabled: boolean): Record<string, string> | undefined
   return enabled ? { [ZDR_HEADER]: ZDR_HEADER_VALUE } : undefined;
 }
 
+function asHeaderMap(value: unknown): Record<string, string> | undefined {
+  return typeof value === "object" && value !== null
+    ? (value as Record<string, string>)
+    : undefined;
+}
+
+/**
+ * The caller's ZDR header value, matched case-insensitively (HTTP header names
+ * are). The lowercase spelling wins when several spellings are present.
+ */
+export function findZdrHeader(headers: unknown): string | undefined {
+  const current = asHeaderMap(headers);
+  if (!current) return undefined;
+  if (ZDR_HEADER in current) return String(current[ZDR_HEADER]);
+  const key = Object.keys(current).find((name) => name.toLowerCase() === ZDR_HEADER);
+  return key === undefined ? undefined : String(current[key]);
+}
+
 /**
  * Add the ZDR header without discarding headers already configured. An explicit
- * user value (`headers["x-cmd-zdr"] = "0"`) wins over the plugin's opt-in.
+ * user value in any casing (`X-Cmd-Zdr: 0`) wins over the plugin's opt-in, and
+ * every spelling collapses into the single lowercase key so a request never
+ * carries two ZDR headers (`1, 0`).
  */
 export function withZdrHeaders(
   existing: unknown,
   enabled: boolean,
 ): Record<string, string> | undefined {
-  const current =
-    typeof existing === "object" && existing !== null
-      ? (existing as Record<string, string>)
-      : undefined;
-  const added = zdrHeaders(enabled);
-  if (!added) return current;
-  return { ...added, ...current };
+  const current = asHeaderMap(existing);
+  if (!enabled) return current;
+  const value = findZdrHeader(current) ?? ZDR_HEADER_VALUE;
+  const rest = Object.fromEntries(
+    Object.entries(current ?? {}).filter(([name]) => name.toLowerCase() !== ZDR_HEADER),
+  );
+  return { [ZDR_HEADER]: value, ...rest };
 }

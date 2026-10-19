@@ -126,11 +126,13 @@ export const AvailabilityPayloadSchema = z
 /**
  * Plugin file config (`~/.config/opencode/opencode-commandcode.json`).
  * Deliberately lenient: user config files may carry extra keys, so unknown
- * keys are stripped and every field falls back to its default.
+ * keys are stripped, and an invalid field falls back on its own without
+ * discarding the valid ones. `zdr` fails safe instead: a present but invalid
+ * value (e.g. the string "true") keeps ZDR on rather than silently disabling it.
  */
 export const PluginFileConfigSchema = z.object({
-  disableModelSync: z.boolean().optional().default(false),
-  commandCodePackagePath: z.string().optional().default(""),
-  debugStartupLogs: z.boolean().optional().default(false),
-  zdr: z.boolean().optional().default(false),
+  disableModelSync: z.boolean().optional().default(false).catch(false),
+  commandCodePackagePath: z.string().optional().default("").catch(""),
+  debugStartupLogs: z.boolean().optional().default(false).catch(false),
+  zdr: z.boolean().optional().default(false).catch(true),
 });

@@ -6,10 +6,14 @@ let originalEnv: Record<string, string | undefined> = {};
 beforeAll(() => {
   originalEnv.COMMANDCODE_API_KEY = process.env.COMMANDCODE_API_KEY;
   delete process.env.COMMANDCODE_API_KEY;
+  // A developer's CMD_ZDR=1 would make every languageModel() call fail closed.
+  originalEnv.CMD_ZDR = process.env.CMD_ZDR;
+  delete process.env.CMD_ZDR;
 });
 afterAll(() => {
   if (originalEnv.COMMANDCODE_API_KEY)
     process.env.COMMANDCODE_API_KEY = originalEnv.COMMANDCODE_API_KEY;
+  if (originalEnv.CMD_ZDR !== undefined) process.env.CMD_ZDR = originalEnv.CMD_ZDR;
 });
 
 const noAuthPaths = { authPaths: [] as string[] };
@@ -69,10 +73,19 @@ test("each languageModel call returns a new instance", () => {
   expect(m2.modelId).toBe("b");
 });
 
-test("CMD_ZDR=1 adds the ZDR header to SDK requests", async () => {
+async function withCmdZdr<T>(value: string | undefined, fn: () => Promise<T> | T): Promise<T> {
   const prev = process.env.CMD_ZDR;
-  process.env.CMD_ZDR = "1";
-  const { calls, restore, respondWith } = mockFetchTrack();
+  if (value === undefined) delete process.env.CMD_ZDR;
+  else process.env.CMD_ZDR = value;
+  try {
+    return await fn();
+  } finally {
+    if (prev === undefined) delete process.env.CMD_ZDR;
+    else process.env.CMD_ZDR = prev;
+  }
+}
+
+function emptyStream(respondWith: (response: Partial<Response>) => void): void {
   respondWith({
     ok: true,
     status: 200,
@@ -83,43 +96,57 @@ test("CMD_ZDR=1 adds the ZDR header to SDK requests", async () => {
       },
     }),
   });
-  try {
-    const provider = createCommandCode({ apiKey: "sk-test" });
-    await provider.languageModel("m").doStream(makeCallOptions());
-    const headers = calls[0].options.headers as Record<string, string>;
-    expect(headers["x-cmd-zdr"]).toBe("1");
-  } finally {
-    restore();
-    if (prev === undefined) delete process.env.CMD_ZDR;
-    else process.env.CMD_ZDR = prev;
-  }
+}
+
+test("CMD_ZDR=1 fails closed in the SDK without sending a request", async () => {
+  await withCmdZdr("1", () => {
+    const { calls, restore } = mockFetchTrack();
+    try {
+      // The factory itself still succeeds: dist/plugin.js exports it to OpenCode's loader.
+      const provider = createCommandCode({ apiKey: "sk-test" });
+      expect(() => provider.languageModel("m")).toThrow("/provider/v1/*");
+      expect(calls).toHaveLength(0);
+    } finally {
+      restore();
+    }
+  });
 });
 
-test("an explicit header wins over the CMD_ZDR opt-in", async () => {
-  const prev = process.env.CMD_ZDR;
-  process.env.CMD_ZDR = "1";
-  const { calls, restore, respondWith } = mockFetchTrack();
-  respondWith({
-    ok: true,
-    status: 200,
-    headers: new Headers({ "content-type": "text/event-stream" }),
-    body: new ReadableStream({
-      start(controller) {
-        controller.close();
-      },
-    }),
+test("an explicit ZDR header in any casing fails closed in the SDK", async () => {
+  await withCmdZdr(undefined, () => {
+    for (const headers of [{ "x-cmd-zdr": "1" }, { "X-Cmd-Zdr": "1" }]) {
+      const provider = createCommandCode({ apiKey: "sk-test", headers });
+      expect(() => provider.languageModel("m")).toThrow("/alpha/generate");
+    }
   });
-  try {
-    const provider = createCommandCode({
-      apiKey: "sk-test",
-      headers: { "x-cmd-zdr": "0" },
-    });
-    await provider.languageModel("m").doStream(makeCallOptions());
-    const headers = calls[0].options.headers as Record<string, string>;
-    expect(headers["x-cmd-zdr"]).toBe("0");
-  } finally {
-    restore();
-    if (prev === undefined) delete process.env.CMD_ZDR;
-    else process.env.CMD_ZDR = prev;
-  }
+});
+
+test("an explicit x-cmd-zdr: 0 opts the SDK out of CMD_ZDR", async () => {
+  await withCmdZdr("1", async () => {
+    const { calls, restore, respondWith } = mockFetchTrack();
+    emptyStream(respondWith);
+    try {
+      const provider = createCommandCode({ apiKey: "sk-test", headers: { "X-Cmd-Zdr": "0" } });
+      await provider.languageModel("m").doStream(makeCallOptions());
+      const headers = calls[0].options.headers as Record<string, string>;
+      expect(headers["X-Cmd-Zdr"]).toBe("0");
+    } finally {
+      restore();
+    }
+  });
+});
+
+test("the SDK sends no ZDR header when ZDR is off", async () => {
+  await withCmdZdr(undefined, async () => {
+    const { calls, restore, respondWith } = mockFetchTrack();
+    emptyStream(respondWith);
+    try {
+      const provider = createCommandCode({ apiKey: "sk-test" });
+      await provider.languageModel("m").doStream(makeCallOptions());
+      const headers = calls[0].options.headers as Record<string, string>;
+      expect(Object.keys(headers).some((name) => name.toLowerCase() === "x-cmd-zdr")).toBe(false);
+    } finally {
+      restore();
+    }
+  });
 });

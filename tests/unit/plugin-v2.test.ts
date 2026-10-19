@@ -2,6 +2,7 @@ import { expect, test, beforeAll, afterAll } from "bun:test";
 import { mkdtempSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
+import { withPluginConfigFile } from "@/tests/helpers/plugin-config.ts";
 
 let dual: { id: string; setup: (ctx: unknown) => Promise<unknown>; server: () => Promise<unknown> };
 let prevStateDir: string | undefined;
@@ -213,5 +214,34 @@ test("V2 setup merges the ZDR header into existing provider headers", async () =
     // An explicit user value survives the plugin opt-in.
     expect(captured.updated.headers).toEqual({ "x-cmd-zdr": "0", "x-other": "yes" });
     expect(captured.setModels.id).toBe("commandcode");
+  });
+});
+
+test("a mixed-case user ZDR header wins and collapses to lowercase on V2", async () => {
+  await withEnvZdr("1", async () => {
+    const existing = {
+      id: "commandcode",
+      headers: { "X-Cmd-Zdr": "0", "x-other": "yes" },
+      settings: {},
+    };
+    const { ctx, captured } = makeCtx(existing);
+    await dual.setup(ctx);
+    expect(captured.updated.headers).toEqual({ "x-cmd-zdr": "0", "x-other": "yes" });
+  });
+});
+
+test("config zdr survives an invalid sibling field on V2", async () => {
+  await withPluginConfigFile({ zdr: true, debugStartupLogs: "false" }, async () => {
+    const { ctx, captured } = makeCtx();
+    await dual.setup(ctx);
+    expect(captured.added.info.headers).toEqual({ "x-cmd-zdr": "1" });
+  });
+});
+
+test("an invalid config zdr value fails safe to on for V2", async () => {
+  await withPluginConfigFile({ zdr: "true" }, async () => {
+    const { ctx, captured } = makeCtx();
+    await dual.setup(ctx);
+    expect(captured.added.info.headers).toEqual({ "x-cmd-zdr": "1" });
   });
 });
