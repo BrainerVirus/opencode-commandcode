@@ -28,6 +28,7 @@ This package is based on **[FanFan4204/opencode-commandcode-provider](https://gi
 - The provider's `supported_endpoints` metadata chooses each model's API route. Messages is preferred when advertised; otherwise Chat Completions is preferred, and Responses is used only when it is the sole advertised route. This avoids the malformed Responses function-call start event observed on DeepSeek V4.1 Flash `#max` in OpenCode V2.0.18: `response.output_item.added` contained a `function_call` item without its required `arguments` string. That exact tool-call flow now passes through Chat Completions on V1 and V2. Responses mappings remain available for response-only models, but the current catalog has none. Claude Sonnet 4.6 returned `MODEL_NOT_IN_PLAN` with the message “available in Pro and above plans or extra on-demand usage”; entitled Claude access has not been live-verified. If a model fails on an account entitled to use it, please [open an issue](https://github.com/BrainerVirus/opencode-commandcode/issues) with the model ID and OpenCode version, or submit a PR with a reproducible fix.
 - Quiet OpenCode startup (diagnostics go to `startup.json`, not stdout).
 - Free models show `(Free)` after their display name on V1 and V2 when all catalog prices are zero. Model IDs and routing stay unchanged; this is a name suffix, not a native desktop badge. Names that already end in `Free` or `(Free)` keep their existing label.
+- Zero data retention on request: `CMD_ZDR=1` or `zdr: true` in the plugin config adds `x-cmd-zdr: 1` to every Command Code Provider API (`/provider/v1/*`) request on both OpenCode generations.
 
 ## How it works
 
@@ -81,13 +82,45 @@ Catalog patches ship in new npm releases. OpenCode loads the version in its pack
 
 ## Plugin config file
 
-Optional, `~/.config/opencode/opencode-commandcode.json` (legacy fallback name `commandcode-go-opencode-provider.json` still loads). Unknown keys are ignored; every field has a default.
+Optional, `~/.config/opencode/opencode-commandcode.json` (legacy fallback name `commandcode-go-opencode-provider.json` still loads). Unknown keys are ignored; every field has a default, and an invalid field falls back on its own without discarding the valid ones (an invalid `zdr` value keeps ZDR on).
 
 | Key | Default | Effect |
 |---|---|---|
 | `commandCodePackagePath` | `""` | Maintainer override: extract the catalog from a local `command-code` checkout instead of the bundle. Same as env `COMMANDCODE_PACKAGE_PATH`. |
 | `debugStartupLogs` | `false` | Also mirror the startup summary to stderr. Default is quiet (`startup.json` only). |
 | `disableModelSync` | `false` | Accepted for forward compatibility; currently has no effect. |
+| `zdr` | `false` | Send `x-cmd-zdr: 1` on every Provider API request (zero data retention). Same as env `CMD_ZDR=1`. A present but invalid value (e.g. the string `"true"`) counts as on. |
+
+## Zero data retention (ZDR)
+
+Command Code enforces [zero data retention](https://commandcode.ai/docs/provider#zero-data-retention-zdr) with the
+`x-cmd-zdr: 1` request header; the CLI exposes the same opt-in as `CMD_ZDR=1`. This plugin never invoked the CLI, so
+set either:
+
+- env `CMD_ZDR=1` (accepts `1`, `true`, `yes`, `on`; case-insensitive), or
+- `"zdr": true` in `~/.config/opencode/opencode-commandcode.json`.
+
+The plugin then adds the header to every Command Code Provider API (`/provider/v1/*`) request: V2 registers it on the
+`commandcode` provider, V1 on the provider `options.headers`. A ZDR header you configure yourself
+(`providers.commandcode.headers` on V2, `provider.commandcode.options.headers` on V1) wins over the plugin's value.
+Header names are matched case-insensitively, and the plugin collapses any spelling (`X-Cmd-Zdr`) into a single lowercase
+`x-cmd-zdr` key, so a request never carries two ZDR headers. Custom npm transports keep owning their options.
+
+Behavior to expect from the API: when set, requests route only through ZDR-capable upstreams, and a model without one
+**fails with `422 cmd_zdr_no_providers`** instead of falling back to a non-ZDR provider. ZDR can change which upstream
+serves a request, so it may cost more. The header is sent on the Chat Completions, Messages, and Responses routes alike;
+live verification so far covers Chat Completions only.
+
+The programmatic SDK factory (`createCommandCode`) calls `/alpha/generate`, which the ZDR documentation does not cover,
+so it fails closed: with ZDR requested (`CMD_ZDR` on, or an `x-cmd-zdr: 1` header in any casing),
+`languageModel()` throws before any request is sent. An explicit `x-cmd-zdr: 0` header opts the SDK out of `CMD_ZDR`.
+
+Live verification against the Provider API lives in `tests/integration/zdr.integration.test.ts` and is skipped unless
+`COMMANDCODE_API_KEY` is set:
+
+```bash
+COMMANDCODE_API_KEY=... bun run test:integration
+```
 
 ## Optional local CLI override
 

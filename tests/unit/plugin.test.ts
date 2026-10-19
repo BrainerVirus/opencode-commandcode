@@ -4,6 +4,7 @@ import { tmpdir } from "os";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { writeCatalogCache, type ModelEntry } from "@/src/startup.ts";
+import { withPluginConfigFile } from "@/tests/helpers/plugin-config.ts";
 
 type PluginResult = {
   config: (config: Record<string, unknown>) => Promise<void>;
@@ -221,6 +222,126 @@ test("config hook creates provider block if missing", async () => {
   expect((cc.options as Record<string, unknown>).baseURL).toBe(
     "https://api.commandcode.ai/provider/v1",
   );
+});
+
+test("CMD_ZDR=1 adds the ZDR header to the V1 provider options", async () => {
+  const prev = process.env.CMD_ZDR;
+  process.env.CMD_ZDR = "1";
+  try {
+    const plugin = await pluginFn();
+    const config: Record<string, unknown> = { provider: { commandcode: {} } };
+    await plugin.config(config);
+
+    const cc = (config.provider as Record<string, Record<string, unknown>>).commandcode;
+    const options = cc.options as Record<string, unknown>;
+    expect(options.baseURL).toBe("https://api.commandcode.ai/provider/v1");
+    expect(options.headers).toEqual({ "x-cmd-zdr": "1" });
+  } finally {
+    if (prev === undefined) delete process.env.CMD_ZDR;
+    else process.env.CMD_ZDR = prev;
+  }
+});
+
+test("ZDR opt-in keeps user headers, and an explicit user ZDR value wins", async () => {
+  const prev = process.env.CMD_ZDR;
+  process.env.CMD_ZDR = "1";
+  try {
+    const plugin = await pluginFn();
+    const config: Record<string, unknown> = {
+      provider: {
+        commandcode: {
+          npm: "@ai-sdk/openai-compatible",
+          options: { headers: { "x-other": "yes", "x-cmd-zdr": "0" } },
+        },
+      },
+    };
+    await plugin.config(config);
+
+    const cc = (config.provider as Record<string, Record<string, unknown>>).commandcode;
+    const options = cc.options as Record<string, unknown>;
+    expect(options.baseURL).toBe("https://api.commandcode.ai/provider/v1");
+    expect(options.headers).toEqual({ "x-cmd-zdr": "0", "x-other": "yes" });
+  } finally {
+    if (prev === undefined) delete process.env.CMD_ZDR;
+    else process.env.CMD_ZDR = prev;
+  }
+});
+
+test("a mixed-case user ZDR header wins and collapses to lowercase on V1", async () => {
+  const prev = process.env.CMD_ZDR;
+  process.env.CMD_ZDR = "1";
+  try {
+    const plugin = await pluginFn();
+    const config: Record<string, unknown> = {
+      provider: { commandcode: { options: { headers: { "X-Cmd-Zdr": "0", "x-other": "yes" } } } },
+    };
+    await plugin.config(config);
+
+    const cc = (config.provider as Record<string, Record<string, unknown>>).commandcode;
+    const options = cc.options as Record<string, unknown>;
+    expect(options.headers).toEqual({ "x-cmd-zdr": "0", "x-other": "yes" });
+  } finally {
+    if (prev === undefined) delete process.env.CMD_ZDR;
+    else process.env.CMD_ZDR = prev;
+  }
+});
+
+test("config zdr survives an invalid sibling field on V1", async () => {
+  await withPluginConfigFile({ zdr: true, debugStartupLogs: "false" }, async () => {
+    const plugin = await pluginFn();
+    const config: Record<string, unknown> = { provider: { commandcode: {} } };
+    await plugin.config(config);
+
+    const cc = (config.provider as Record<string, Record<string, unknown>>).commandcode;
+    const options = cc.options as Record<string, unknown>;
+    expect(options.headers).toEqual({ "x-cmd-zdr": "1" });
+  });
+});
+
+test("an invalid config zdr value fails safe to on for V1", async () => {
+  await withPluginConfigFile({ zdr: "true" }, async () => {
+    const plugin = await pluginFn();
+    const config: Record<string, unknown> = { provider: { commandcode: {} } };
+    await plugin.config(config);
+
+    const cc = (config.provider as Record<string, Record<string, unknown>>).commandcode;
+    const options = cc.options as Record<string, unknown>;
+    expect(options.headers).toEqual({ "x-cmd-zdr": "1" });
+  });
+});
+
+test("no ZDR header without CMD_ZDR or the config flag", async () => {
+  const prev = process.env.CMD_ZDR;
+  delete process.env.CMD_ZDR;
+  try {
+    const plugin = await pluginFn();
+    const config: Record<string, unknown> = { provider: { commandcode: {} } };
+    await plugin.config(config);
+
+    const cc = (config.provider as Record<string, Record<string, unknown>>).commandcode;
+    expect((cc.options as Record<string, unknown>).headers).toBeUndefined();
+  } finally {
+    if (prev !== undefined) process.env.CMD_ZDR = prev;
+  }
+});
+
+test("CMD_ZDR=1 leaves custom npm transports untouched", async () => {
+  const prev = process.env.CMD_ZDR;
+  process.env.CMD_ZDR = "1";
+  try {
+    const plugin = await pluginFn();
+    const config: Record<string, unknown> = {
+      provider: { commandcode: { npm: "custom-package" } },
+    };
+    await plugin.config(config);
+
+    const cc = (config.provider as Record<string, Record<string, unknown>>).commandcode;
+    expect(cc.npm).toBe("custom-package");
+    expect(cc.options).toBeUndefined();
+  } finally {
+    if (prev === undefined) delete process.env.CMD_ZDR;
+    else process.env.CMD_ZDR = prev;
+  }
 });
 
 test("startup summary uses bundled manifest version and status", async () => {

@@ -243,6 +243,7 @@ describe("PluginFileConfigSchema", () => {
       disableModelSync: false,
       commandCodePackagePath: "",
       debugStartupLogs: false,
+      zdr: false,
     });
   });
 
@@ -251,23 +252,47 @@ describe("PluginFileConfigSchema", () => {
       PluginFileConfigSchema.parse({
         debugStartupLogs: true,
         commandCodePackagePath: "/opt/command-code",
+        zdr: true,
         extraKey: "ignored",
       }),
     ).toEqual({
       disableModelSync: false,
       commandCodePackagePath: "/opt/command-code",
       debugStartupLogs: true,
+      zdr: true,
     });
   });
 
-  test("wrong-typed values fail validation so callers fall back to defaults", () => {
-    const raw = { debugStartupLogs: "yes" };
-    const parsed = PluginFileConfigSchema.safeParse(raw);
-    const config = parsed.success ? parsed.data : PluginFileConfigSchema.parse({});
-    expect(config).toEqual({
+  test("a wrong-typed field falls back to its default on its own", () => {
+    expect(PluginFileConfigSchema.parse({ debugStartupLogs: "yes" })).toEqual({
       disableModelSync: false,
       commandCodePackagePath: "",
       debugStartupLogs: false,
+      zdr: false,
     });
+  });
+
+  test("an invalid field never discards a valid zdr opt-in", () => {
+    expect(PluginFileConfigSchema.parse({ zdr: true, debugStartupLogs: "false" })).toEqual({
+      disableModelSync: false,
+      commandCodePackagePath: "",
+      debugStartupLogs: false,
+      zdr: true,
+    });
+    expect(
+      PluginFileConfigSchema.parse({ commandCodePackagePath: "/opt/cc", disableModelSync: 1 }),
+    ).toEqual({
+      disableModelSync: false,
+      commandCodePackagePath: "/opt/cc",
+      debugStartupLogs: false,
+      zdr: false,
+    });
+  });
+
+  test("a present but invalid zdr value fails safe to on", () => {
+    for (const zdr of ["true", "false", 1, null]) {
+      expect(PluginFileConfigSchema.parse({ zdr }).zdr).toBe(true);
+    }
+    expect(PluginFileConfigSchema.parse({ zdr: false }).zdr).toBe(false);
   });
 });
