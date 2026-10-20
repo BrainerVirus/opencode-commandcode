@@ -2392,7 +2392,7 @@
       ]
     },
     "family": "ling",
-    "release_date": "2026-10-02",
+    "release_date": "2026-09-29",
     "supported_endpoints": [
       "/chat/completions"
     ]
@@ -2422,7 +2422,7 @@
       ]
     },
     "family": "longcat",
-    "release_date": "2026-07-20",
+    "release_date": "2026-06-30",
     "supported_endpoints": [
       "/chat/completions"
     ]
@@ -3667,6 +3667,7 @@
       ]
     },
     "release_date": "2026-05-29",
+    "status": "deprecated",
     "supported_endpoints": [
       "/chat/completions",
       "/responses"
