@@ -1838,6 +1838,7 @@
           "input": 10,
           "output": 45,
           "cache_read": 1,
+          "cache_write": 12.5,
           "tier": {
             "type": "context",
             "size": 272000
@@ -1847,7 +1848,8 @@
       "context_over_200k": {
         "input": 10,
         "output": 45,
-        "cache_read": 1
+        "cache_read": 1,
+        "cache_write": 12.5
       }
     },
     "limit": {
@@ -2219,7 +2221,7 @@
       ]
     },
     "family": "kimi-k2",
-    "release_date": "2026-04-21",
+    "release_date": "2026-04-20",
     "supported_endpoints": [
       "/chat/completions",
       "/responses"
