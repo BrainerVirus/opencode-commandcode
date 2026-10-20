@@ -926,43 +926,6 @@
     ]
   },
   {
-    "id": "stealth/cat-jam:free",
-    "name": "Cat Jam",
-    "tier": "open-source",
-    "reasoning": true,
-    "reasoningEfforts": [
-      "low",
-      "medium",
-      "high",
-      "xhigh",
-      "max"
-    ],
-    "tool_call": true,
-    "cost": {
-      "input": 0,
-      "output": 0,
-      "cache_read": 0
-    },
-    "limit": {
-      "context": 1048576,
-      "output": 131072
-    },
-    "attachment": false,
-    "modalities": {
-      "input": [
-        "text"
-      ],
-      "output": [
-        "text"
-      ]
-    },
-    "release_date": "2026-10-15",
-    "supported_endpoints": [
-      "/chat/completions",
-      "/responses"
-    ]
-  },
-  {
     "id": "deepseek/deepseek-v4-flash",
     "name": "DeepSeek V4 Flash (latest)",
     "tier": "open-source",
