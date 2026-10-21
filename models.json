@@ -107,7 +107,7 @@
       ]
     },
     "family": "claude-haiku",
-    "release_date": "2025-10-16",
+    "release_date": "2025-10-15",
     "supported_endpoints": [
       "/messages"
     ]
@@ -217,7 +217,7 @@
       ]
     },
     "family": "claude-opus",
-    "release_date": "2026-04-17",
+    "release_date": "2026-04-16",
     "supported_endpoints": [
       "/messages"
     ]
@@ -382,8 +382,6 @@
         {
           "input": 6,
           "output": 22.5,
-          "cache_read": 0.6,
-          "cache_write": 7.5,
           "tier": {
             "type": "context",
             "size": 200000
@@ -392,9 +390,7 @@
       ],
       "context_over_200k": {
         "input": 6,
-        "output": 22.5,
-        "cache_read": 0.6,
-        "cache_write": 7.5
+        "output": 22.5
       }
     },
     "limit": {
@@ -413,7 +409,7 @@
       ]
     },
     "family": "claude-sonnet",
-    "release_date": "2026-02-18",
+    "release_date": "2026-02-17",
     "supported_endpoints": [
       "/messages"
     ]
@@ -623,7 +619,7 @@
       ]
     },
     "family": "gpt-mini",
-    "release_date": "2026-03-19",
+    "release_date": "2026-03-17",
     "supported_endpoints": [
       "/chat/completions",
       "/responses"
@@ -649,7 +645,7 @@
         {
           "input": 10,
           "output": 45,
-          "cache_read": 1,
+          "cache_read": 0.5,
           "tier": {
             "type": "context",
             "size": 272000
@@ -659,7 +655,7 @@
       "context_over_200k": {
         "input": 10,
         "output": 45,
-        "cache_read": 1
+        "cache_read": 0.5
       }
     },
     "limit": {
@@ -768,7 +764,6 @@
           "input": 0.2,
           "output": 0.75,
           "cache_read": 0.02,
-          "cache_write": 0.25,
           "tier": {
             "type": "context",
             "size": 272000
@@ -778,8 +773,7 @@
       "context_over_200k": {
         "input": 0.2,
         "output": 0.75,
-        "cache_read": 0.02,
-        "cache_write": 0.25
+        "cache_read": 0.02
       }
     },
     "limit": {
@@ -828,7 +822,6 @@
           "input": 4,
           "output": 15,
           "cache_read": 0.4,
-          "cache_write": 5,
           "tier": {
             "type": "context",
             "size": 272000
@@ -838,8 +831,7 @@
       "context_over_200k": {
         "input": 4,
         "output": 15,
-        "cache_read": 0.4,
-        "cache_write": 5
+        "cache_read": 0.4
       }
     },
     "limit": {
@@ -888,7 +880,6 @@
           "input": 4,
           "output": 15,
           "cache_read": 0.2,
-          "cache_write": 5,
           "tier": {
             "type": "context",
             "size": 272000
@@ -898,8 +889,7 @@
       "context_over_200k": {
         "input": 4,
         "output": 15,
-        "cache_read": 0.2,
-        "cache_write": 5
+        "cache_read": 0.2
       }
     },
     "limit": {
@@ -3263,7 +3253,8 @@
     },
     "limit": {
       "context": 262144,
-      "output": 65536
+      "output": 65536,
+      "input": 262144
     },
     "attachment": true,
     "modalities": {
@@ -3275,6 +3266,8 @@
         "text"
       ]
     },
+    "family": "ornith",
+    "release_date": "2026-10-20",
     "supported_endpoints": [
       "/chat/completions"
     ]
@@ -3353,7 +3346,7 @@
         {
           "input": 2,
           "output": 6,
-          "cache_read": 0.2,
+          "cache_read": 0.4,
           "cache_write": 2.5,
           "tier": {
             "type": "context",
@@ -3364,7 +3357,7 @@
       "context_over_200k": {
         "input": 2,
         "output": 6,
-        "cache_read": 0.2,
+        "cache_read": 0.4,
         "cache_write": 2.5
       }
     },
@@ -3806,6 +3799,7 @@
         "text"
       ]
     },
+    "family": "step",
     "release_date": "2026-01-29",
     "supported_endpoints": [
       "/chat/completions",
