@@ -3273,34 +3273,6 @@
     ]
   },
   {
-    "id": "ornith/ornith-1.5-122b:free",
-    "name": "Ornith 1.5 122B Free",
-    "tier": "open-source",
-    "reasoning": true,
-    "tool_call": true,
-    "cost": {
-      "input": 0,
-      "output": 0
-    },
-    "limit": {
-      "context": 262144,
-      "output": 65536
-    },
-    "attachment": true,
-    "modalities": {
-      "input": [
-        "text",
-        "image"
-      ],
-      "output": [
-        "text"
-      ]
-    },
-    "supported_endpoints": [
-      "/chat/completions"
-    ]
-  },
-  {
     "id": "Qwen/Qwen3.6-Max-Preview",
     "name": "Qwen 3.6 Max Preview",
     "tier": "open-source",
