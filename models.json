@@ -2209,7 +2209,8 @@
     "modalities": {
       "input": [
         "text",
-        "image"
+        "image",
+        "video"
       ],
       "output": [
         "text"
@@ -2571,7 +2572,8 @@
     },
     "limit": {
       "context": 200000,
-      "output": 131072
+      "output": 131072,
+      "input": 180000
     },
     "attachment": false,
     "modalities": {
@@ -2584,7 +2586,6 @@
     },
     "family": "minimax",
     "release_date": "2026-02-12",
-    "status": "deprecated",
     "supported_endpoints": [
       "/chat/completions",
       "/responses"
@@ -3657,7 +3658,8 @@
     },
     "limit": {
       "context": 256000,
-      "output": 65536
+      "output": 65536,
+      "input": 256000
     },
     "attachment": true,
     "modalities": {
@@ -3671,7 +3673,6 @@
       ]
     },
     "release_date": "2026-05-29",
-    "status": "deprecated",
     "supported_endpoints": [
       "/chat/completions",
       "/responses"
