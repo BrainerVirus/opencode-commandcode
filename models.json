@@ -3521,16 +3521,14 @@
     "modalities": {
       "input": [
         "text",
-        "image",
-        "video",
-        "pdf"
+        "image"
       ],
       "output": [
         "text"
       ]
     },
-    "family": "qwen",
-    "release_date": "2026-09-02",
+    "family": "qwen3.8-max",
+    "release_date": "2026-10-20",
     "supported_endpoints": [
       "/chat/completions"
     ]
