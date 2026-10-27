@@ -1666,8 +1666,7 @@
     "family": "glm",
     "release_date": "2026-08-14",
     "supported_endpoints": [
-      "/chat/completions",
-      "/responses"
+      "/chat/completions"
     ]
   },
   {
