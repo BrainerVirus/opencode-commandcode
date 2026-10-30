@@ -3079,8 +3079,7 @@
       "input": [
         "text",
         "image",
-        "video",
-        "audio"
+        "video"
       ],
       "output": [
         "text"
