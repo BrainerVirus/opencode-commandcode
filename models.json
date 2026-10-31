@@ -2484,6 +2484,7 @@
     },
     "family": "laguna",
     "release_date": "2026-07-21",
+    "status": "deprecated",
     "supported_endpoints": [
       "/chat/completions",
       "/responses"
