@@ -126,6 +126,12 @@ COMMANDCODE_API_KEY=... bun run test:integration
 
 Maintainers only. OpenCode will scrape a local `command-code` install when `COMMANDCODE_PACKAGE_PATH` or `commandCodePackagePath` in `~/.config/opencode/opencode-commandcode.json` is set.
 
+## Reporting a problem
+
+Open a [bug report](https://github.com/BrainerVirus/opencode-commandcode/issues/new?template=bug_report.yml) for install, auth, catalog, or model-call failures — include the failing model ID, the exact error, and your plugin and OpenCode versions.
+
+This repository does not accept directory, "awesome list", plugin-marketplace, or outreach submissions. Issues opened for that purpose are closed without review.
+
 ## Development
 
 ```bash
