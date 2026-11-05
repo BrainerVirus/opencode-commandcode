@@ -1,0 +1,62 @@
+name: Bug report
+description: Install, auth, catalog, or model-call problems with the plugin
+title: "[bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Bug reports are read and answered. Directory, "awesome list", plugin-marketplace
+        and outreach submissions are not — see
+        [Reporting a problem](https://github.com/BrainerVirus/opencode-commandcode/blob/main/README.md#reporting-a-problem).
+  - type: input
+    id: plugin_version
+    attributes:
+      label: Plugin version
+      description: Output of `npm ls @brainervirus/opencode-commandcode`, or the version in your `package.json`.
+      placeholder: 0.12.22
+    validations:
+      required: true
+  - type: input
+    id: opencode_version
+    attributes:
+      label: OpenCode version
+      placeholder: 2.0.18
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where it fails
+      options:
+        - Install, or provider not listed
+        - Auth or API key
+        - Model call (output, tool calls, streaming)
+        - Catalog (model missing, stale, or degraded)
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened
+      description: The failing model ID, the exact error text, and what you expected instead. Redact API keys.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or output
+      description: Relevant terminal or OpenCode output. Redact API keys.
+      render: shell
