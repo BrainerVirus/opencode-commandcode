@@ -976,42 +976,6 @@
     ]
   },
   {
-    "id": "stealth/crouton-alpha",
-    "name": "Crouton Alpha",
-    "tier": "open-source",
-    "reasoning": true,
-    "reasoningEfforts": [
-      "low",
-      "medium",
-      "high",
-      "xhigh",
-      "max"
-    ],
-    "tool_call": true,
-    "cost": {
-      "input": 0,
-      "output": 0,
-      "cache_read": 0
-    },
-    "limit": {
-      "context": 1048576,
-      "output": 943718
-    },
-    "attachment": true,
-    "modalities": {
-      "input": [
-        "text",
-        "image"
-      ],
-      "output": [
-        "text"
-      ]
-    },
-    "supported_endpoints": [
-      "/chat/completions"
-    ]
-  },
-  {
     "id": "deepseek/deepseek-v4-flash",
     "name": "DeepSeek V4 Flash (latest)",
     "tier": "open-source",
