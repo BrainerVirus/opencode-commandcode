@@ -1724,7 +1724,8 @@
     "family": "glm",
     "release_date": "2026-08-14",
     "supported_endpoints": [
-      "/chat/completions"
+      "/chat/completions",
+      "/responses"
     ]
   },
   {
@@ -3619,7 +3620,8 @@
     "modalities": {
       "input": [
         "text",
-        "image"
+        "image",
+        "video"
       ],
       "output": [
         "text"
