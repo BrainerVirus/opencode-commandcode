@@ -2393,7 +2393,6 @@
     },
     "family": "kimi-k2",
     "release_date": "2026-01-27",
-    "status": "deprecated",
     "supported_endpoints": [
       "/chat/completions",
       "/responses"
@@ -3395,8 +3394,7 @@
     },
     "limit": {
       "context": 262144,
-      "output": 65536,
-      "input": 262144
+      "output": 65536
     },
     "attachment": true,
     "modalities": {
