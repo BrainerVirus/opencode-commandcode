@@ -4124,8 +4124,7 @@
     "family": "Hy",
     "release_date": "2026-11-16",
     "supported_endpoints": [
-      "/chat/completions",
-      "/responses"
+      "/chat/completions"
     ]
   },
   {
