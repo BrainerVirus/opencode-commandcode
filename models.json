@@ -1272,6 +1272,37 @@
     ]
   },
   {
+    "id": "recursive/flint-v1.0:free",
+    "name": "Flint",
+    "tier": "open-source",
+    "reasoning": true,
+    "tool_call": true,
+    "cost": {
+      "input": 0,
+      "output": 0,
+      "cache_read": 0
+    },
+    "limit": {
+      "context": 262144,
+      "output": 65536
+    },
+    "attachment": false,
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "family": "flint",
+    "release_date": "2026-10-21",
+    "supported_endpoints": [
+      "/chat/completions",
+      "/responses"
+    ]
+  },
+  {
     "id": "sakana/fugu-ultra",
     "name": "Fugu Ultra",
     "tier": "open-source",
@@ -3886,6 +3917,46 @@
     ]
   },
   {
+    "id": "Qwen/Qwen4-Max",
+    "name": "Qwen 4 Max",
+    "tier": "open-source",
+    "reasoning": true,
+    "reasoningEfforts": [
+      "off",
+      "low",
+      "high",
+      "xhigh"
+    ],
+    "tool_call": true,
+    "cost": {
+      "input": 1.5,
+      "output": 4.5,
+      "cache_read": 0.075,
+      "cache_write": 1.875
+    },
+    "limit": {
+      "context": 1000000,
+      "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "family": "qwen",
+    "release_date": "2026-11-16",
+    "supported_endpoints": [
+      "/chat/completions",
+      "/responses"
+    ]
+  },
+  {
     "id": "stepfun/Step-3.5-Flash",
     "name": "Step 3.5 Flash",
     "tier": "open-source",
@@ -4015,6 +4086,43 @@
     },
     "family": "Hy",
     "release_date": "2026-07-06",
+    "supported_endpoints": [
+      "/chat/completions",
+      "/responses"
+    ]
+  },
+  {
+    "id": "tencent/hy4-flash",
+    "name": "Tencent Hy4 Flash",
+    "tier": "open-source",
+    "reasoning": true,
+    "reasoningEfforts": [
+      "off",
+      "high"
+    ],
+    "tool_call": true,
+    "cost": {
+      "input": 0.07,
+      "output": 0.281,
+      "cache_read": 0.003
+    },
+    "limit": {
+      "context": 1024000,
+      "output": 65536,
+      "input": 983040
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "family": "Hy",
+    "release_date": "2026-11-16",
     "supported_endpoints": [
       "/chat/completions",
       "/responses"
