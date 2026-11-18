@@ -4092,6 +4092,41 @@
     ]
   },
   {
+    "id": "tencent/hy4",
+    "name": "Tencent Hy4",
+    "tier": "open-source",
+    "reasoning": true,
+    "reasoningEfforts": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "tool_call": true,
+    "cost": {
+      "input": 0.834,
+      "output": 2.501,
+      "cache_read": 0.042
+    },
+    "limit": {
+      "context": 1024000,
+      "output": 65536
+    },
+    "attachment": true,
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "release_date": "2026-11-04",
+    "supported_endpoints": [
+      "/chat/completions"
+    ]
+  },
+  {
     "id": "tencent/hy4-flash",
     "name": "Tencent Hy4 Flash",
     "tier": "open-source",
