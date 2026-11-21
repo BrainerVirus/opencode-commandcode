@@ -1272,7 +1272,7 @@
         "text"
       ]
     },
-    "family": "deepseek-thinking",
+    "family": "deepseek-pro",
     "release_date": "2026-04-24",
     "supported_endpoints": [
       "/chat/completions",
@@ -1415,7 +1415,7 @@
         "text"
       ]
     },
-    "family": "flint",
+    "family": "flint-free",
     "release_date": "2026-10-21",
     "supported_endpoints": [
       "/chat/completions",
@@ -1467,7 +1467,7 @@
         "text"
       ]
     },
-    "family": "fugu",
+    "family": "fugu-ultra",
     "release_date": "2026-06-15",
     "supported_endpoints": [
       "/chat/completions",
@@ -2480,7 +2480,7 @@
         "text"
       ]
     },
-    "family": "ling",
+    "family": "inkling",
     "release_date": "2026-07-15",
     "supported_endpoints": [
       "/chat/completions",
@@ -2513,7 +2513,7 @@
         "text"
       ]
     },
-    "family": "ling",
+    "family": "inkling-small",
     "release_date": "2026-07-30",
     "supported_endpoints": [
       "/chat/completions",
@@ -2546,7 +2546,7 @@
         "text"
       ]
     },
-    "family": "kimi-k2",
+    "family": "kimi",
     "release_date": "2026-01-27",
     "supported_endpoints": [
       "/chat/completions",
@@ -2579,7 +2579,7 @@
         "text"
       ]
     },
-    "family": "kimi-k2",
+    "family": "kimi",
     "release_date": "2026-04-20",
     "supported_endpoints": [
       "/chat/completions",
@@ -2612,7 +2612,7 @@
         "text"
       ]
     },
-    "family": "kimi-k2",
+    "family": "kimi-code",
     "release_date": "2026-06-12",
     "supported_endpoints": [
       "/chat/completions",
@@ -2645,7 +2645,7 @@
         "text"
       ]
     },
-    "family": "kimi-k2",
+    "family": "kimi-code",
     "release_date": "2026-06-12",
     "supported_endpoints": [
       "/chat/completions",
@@ -2683,7 +2683,7 @@
         "text"
       ]
     },
-    "family": "kimi-k3",
+    "family": "kimi",
     "release_date": "2026-07-16",
     "supported_endpoints": [
       "/chat/completions",
@@ -2721,7 +2721,7 @@
         "text"
       ]
     },
-    "family": "kimi-k3",
+    "family": "kimi-pro",
     "release_date": "2026-10-23",
     "supported_endpoints": [
       "/chat/completions",
@@ -2757,7 +2757,7 @@
         "text"
       ]
     },
-    "family": "ling",
+    "family": "ling-flash",
     "release_date": "2026-09-29",
     "supported_endpoints": [
       "/chat/completions"
@@ -2792,7 +2792,7 @@
         "text"
       ]
     },
-    "family": "ling",
+    "family": "ling-flash",
     "release_date": "2026-10-30",
     "supported_endpoints": [
       "/chat/completions"
@@ -2855,7 +2855,7 @@
         "text"
       ]
     },
-    "family": "mimo",
+    "family": "mimo-flash",
     "release_date": "2026-09-22",
     "supported_endpoints": [
       "/chat/completions",
@@ -2889,7 +2889,7 @@
         "text"
       ]
     },
-    "family": "mimo",
+    "family": "mimo-pro",
     "release_date": "2026-09-22",
     "supported_endpoints": [
       "/chat/completions",
@@ -2923,7 +2923,7 @@
         "text"
       ]
     },
-    "family": "mimo",
+    "family": "mimo-pro",
     "release_date": "2026-09-21",
     "supported_endpoints": [
       "/chat/completions",
@@ -2955,7 +2955,7 @@
         "text"
       ]
     },
-    "family": "minimax",
+    "family": "minimax-m",
     "release_date": "2026-02-12",
     "supported_endpoints": [
       "/chat/completions",
@@ -2986,7 +2986,7 @@
         "text"
       ]
     },
-    "family": "minimax",
+    "family": "minimax-m",
     "release_date": "2026-03-18",
     "supported_endpoints": [
       "/chat/completions",
@@ -3040,7 +3040,7 @@
         "text"
       ]
     },
-    "family": "minimax",
+    "family": "minimax-m",
     "release_date": "2026-06-01",
     "supported_endpoints": [
       "/chat/completions",
@@ -3080,7 +3080,7 @@
         "text"
       ]
     },
-    "family": "minimax",
+    "family": "minimax-m-flash",
     "release_date": "2026-10-19",
     "supported_endpoints": [
       "/chat/completions"
@@ -3175,7 +3175,7 @@
         "text"
       ]
     },
-    "family": "muse",
+    "family": "muse-ember",
     "release_date": "2026-11-09",
     "supported_endpoints": [
       "/chat/completions",
@@ -3215,7 +3215,7 @@
         "text"
       ]
     },
-    "family": "muse",
+    "family": "muse-spark",
     "release_date": "2026-04-08",
     "supported_endpoints": [
       "/chat/completions",
@@ -3256,7 +3256,7 @@
         "text"
       ]
     },
-    "family": "muse",
+    "family": "muse-spark",
     "release_date": "2026-08-05",
     "supported_endpoints": [
       "/chat/completions",
@@ -3297,7 +3297,7 @@
         "text"
       ]
     },
-    "family": "muse",
+    "family": "muse-spark",
     "release_date": "2026-08-05",
     "supported_endpoints": [
       "/chat/completions",
@@ -3339,7 +3339,7 @@
         "text"
       ]
     },
-    "family": "muse",
+    "family": "muse-spark",
     "release_date": "2026-09-02",
     "supported_endpoints": [
       "/chat/completions",
@@ -3380,7 +3380,7 @@
         "text"
       ]
     },
-    "family": "muse",
+    "family": "muse-spark",
     "release_date": "2026-09-02",
     "supported_endpoints": [
       "/chat/completions",
@@ -3418,7 +3418,7 @@
         "text"
       ]
     },
-    "family": "muse",
+    "family": "muse-spark",
     "release_date": "2026-10-15",
     "supported_endpoints": [
       "/chat/completions",
@@ -3460,7 +3460,7 @@
         "text"
       ]
     },
-    "family": "muse",
+    "family": "muse-wonder",
     "release_date": "2026-10-12",
     "supported_endpoints": [
       "/chat/completions",
@@ -3491,7 +3491,7 @@
         "text"
       ]
     },
-    "family": "nemotron",
+    "family": "nemotron-ultra",
     "release_date": "2026-06-04",
     "supported_endpoints": [
       "/chat/completions",
@@ -3529,7 +3529,7 @@
         "text"
       ]
     },
-    "family": "nemotron",
+    "family": "nemotron-super",
     "release_date": "2026-10-15",
     "supported_endpoints": [
       "/chat/completions",
@@ -3592,7 +3592,7 @@
         "text"
       ]
     },
-    "family": "qwen",
+    "family": "qwen-max",
     "release_date": "2026-04-20",
     "supported_endpoints": [
       "/chat/completions",
@@ -3643,7 +3643,7 @@
         "text"
       ]
     },
-    "family": "qwen",
+    "family": "qwen-plus",
     "release_date": "2026-04-02",
     "supported_endpoints": [
       "/chat/completions",
@@ -3700,7 +3700,7 @@
         "text"
       ]
     },
-    "family": "qwen",
+    "family": "qwen-flash",
     "release_date": "2026-07-15",
     "supported_endpoints": [
       "/chat/completions",
@@ -3752,7 +3752,7 @@
         "text"
       ]
     },
-    "family": "qwen",
+    "family": "qwen-max",
     "release_date": "2026-05-21",
     "supported_endpoints": [
       "/chat/completions",
@@ -3802,7 +3802,7 @@
         "text"
       ]
     },
-    "family": "qwen",
+    "family": "qwen-plus",
     "release_date": "2026-06-02",
     "supported_endpoints": [
       "/chat/completions",
@@ -3879,7 +3879,7 @@
         "text"
       ]
     },
-    "family": "qwen",
+    "family": "qwen-flash",
     "release_date": "2026-08-26",
     "supported_endpoints": [
       "/chat/completions"
@@ -3918,7 +3918,7 @@
         "text"
       ]
     },
-    "family": "qwen",
+    "family": "qwen-max",
     "release_date": "2026-08-03",
     "supported_endpoints": [
       "/chat/completions",
@@ -3956,7 +3956,7 @@
         "text"
       ]
     },
-    "family": "qwen3.8-max",
+    "family": "qwen-max",
     "release_date": "2026-10-20",
     "supported_endpoints": [
       "/chat/completions"
@@ -3994,7 +3994,7 @@
         "text"
       ]
     },
-    "family": "qwen3.8-max",
+    "family": "qwen-max",
     "release_date": "2026-09-23",
     "supported_endpoints": [
       "/chat/completions",
@@ -4033,7 +4033,7 @@
         "text"
       ]
     },
-    "family": "qwen",
+    "family": "qwen-omni-flash",
     "release_date": "2026-09-17",
     "supported_endpoints": [
       "/chat/completions",
@@ -4073,7 +4073,7 @@
         "text"
       ]
     },
-    "family": "qwen",
+    "family": "qwen-max",
     "release_date": "2026-11-16",
     "supported_endpoints": [
       "/chat/completions",
@@ -4105,7 +4105,7 @@
         "text"
       ]
     },
-    "family": "step",
+    "family": "step-flash",
     "release_date": "2026-01-29",
     "supported_endpoints": [
       "/chat/completions",
@@ -4139,6 +4139,7 @@
         "text"
       ]
     },
+    "family": "step-flash",
     "release_date": "2026-05-29",
     "supported_endpoints": [
       "/chat/completions",
@@ -4177,6 +4178,7 @@
         "text"
       ]
     },
+    "family": "step",
     "release_date": "2026-09-16",
     "supported_endpoints": [
       "/chat/completions",
@@ -4208,7 +4210,7 @@
         "text"
       ]
     },
-    "family": "Hy",
+    "family": "hy",
     "release_date": "2026-07-06",
     "supported_endpoints": [
       "/chat/completions",
@@ -4280,7 +4282,7 @@
         "text"
       ]
     },
-    "family": "Hy",
+    "family": "hy-flash",
     "release_date": "2026-11-16",
     "supported_endpoints": [
       "/chat/completions"
@@ -4315,7 +4317,7 @@
         "text"
       ]
     },
-    "family": "Hy",
+    "family": "hy",
     "release_date": "2026-08-28",
     "supported_endpoints": [
       "/chat/completions"
