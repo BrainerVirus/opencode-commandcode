@@ -2488,42 +2488,6 @@
     ]
   },
   {
-    "id": "thinkingmachines/inkling-2-small:free",
-    "name": "Inkling 2 Small",
-    "tier": "open-source",
-    "reasoning": true,
-    "reasoningEfforts": [
-      "low",
-      "medium",
-      "high",
-      "max"
-    ],
-    "tool_call": true,
-    "cost": {
-      "input": 0,
-      "output": 0,
-      "cache_read": 0
-    },
-    "limit": {
-      "context": 1048576,
-      "output": 131072
-    },
-    "attachment": true,
-    "modalities": {
-      "input": [
-        "text",
-        "image"
-      ],
-      "output": [
-        "text"
-      ]
-    },
-    "release_date": "2026-11-09",
-    "supported_endpoints": [
-      "/chat/completions"
-    ]
-  },
-  {
     "id": "thinkingmachines/inkling-small",
     "name": "Inkling Small",
     "tier": "open-source",
