@@ -3957,7 +3957,7 @@
       ]
     },
     "family": "qwen-max",
-    "release_date": "2026-10-20",
+    "release_date": "2026-09-02",
     "supported_endpoints": [
       "/chat/completions"
     ]
