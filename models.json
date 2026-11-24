@@ -2962,7 +2962,7 @@
       ]
     },
     "family": "mimo-pro",
-    "release_date": "2026-09-21",
+    "release_date": "2026-09-22",
     "supported_endpoints": [
       "/chat/completions",
       "/responses"
@@ -3155,7 +3155,7 @@
       ]
     },
     "family": "mistral-large",
-    "release_date": "2026-10-06",
+    "release_date": "2026-10-05",
     "supported_endpoints": [
       "/chat/completions",
       "/responses"
@@ -4345,7 +4345,8 @@
     },
     "limit": {
       "context": 1048576,
-      "output": 65536
+      "output": 65536,
+      "input": 983040
     },
     "attachment": false,
     "modalities": {
