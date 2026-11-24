@@ -2519,8 +2519,8 @@
         "text"
       ]
     },
-    "family": "inkling",
-    "release_date": "2026-11-21",
+    "family": "inkling-mini",
+    "release_date": "2026-11-20",
     "supported_endpoints": [
       "/chat/completions"
     ]
