@@ -4274,7 +4274,8 @@
     },
     "limit": {
       "context": 1024000,
-      "output": 65536
+      "output": 65536,
+      "input": 983040
     },
     "attachment": true,
     "modalities": {
@@ -4286,6 +4287,7 @@
         "text"
       ]
     },
+    "family": "hy",
     "release_date": "2026-11-04",
     "supported_endpoints": [
       "/chat/completions"
