@@ -1314,7 +1314,8 @@
     "release_date": "2026-09-10",
     "supported_endpoints": [
       "/chat/completions",
-      "/responses"
+      "/responses",
+      "/messages"
     ]
   },
   {
@@ -2035,7 +2036,8 @@
     "family": "glm-flash",
     "release_date": "2026-08-26",
     "supported_endpoints": [
-      "/chat/completions"
+      "/chat/completions",
+      "/messages"
     ]
   },
   {
@@ -2725,7 +2727,8 @@
     "release_date": "2026-07-16",
     "supported_endpoints": [
       "/chat/completions",
-      "/responses"
+      "/responses",
+      "/messages"
     ]
   },
   {
