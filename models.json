@@ -1168,7 +1168,8 @@
     "release_date": "2026-04-24",
     "supported_endpoints": [
       "/chat/completions",
-      "/responses"
+      "/responses",
+      "/messages"
     ]
   },
   {
