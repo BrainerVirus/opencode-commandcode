@@ -1961,6 +1961,7 @@
     },
     "family": "glm",
     "release_date": "2026-06-13",
+    "status": "deprecated",
     "supported_endpoints": [
       "/chat/completions",
       "/responses"
